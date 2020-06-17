@@ -1,0 +1,12 @@
+[package]
+name = "crankstart"
+description = "A crate whose aim is to let you write games for the Playdate handheld gaming system in Rust."
+version = "0.1.0"
+authors = ["Rob Tsuk <rob@tsuk.com>"]
+license = "MIT"
+homepage = "https://github.com/rtsuk/crankstart"
+repository = "https://github.com/rtsuk/crankstart"
+edition = "2018"
+readme = "README.md"
+
+[dependencies]
