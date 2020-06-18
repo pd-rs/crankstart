@@ -1,0 +1,27 @@
+[[example]]
+    name = "sprite_game"
+    assets = [
+        "sprite_game_images/background.png",
+        "sprite_game_images/player.png",
+        "sprite_game_images/doubleBullet.png",
+        "sprite_game_images/plane1.png",
+        "sprite_game_images/plane2.png",
+        "sprite_game_images/explosion/1.png",
+        "sprite_game_images/explosion/2.png",
+        "sprite_game_images/explosion/3.png",
+        "sprite_game_images/explosion/4.png",
+        "sprite_game_images/explosion/5.png",
+        "sprite_game_images/explosion/6.png",
+        "sprite_game_images/explosion/7.png",
+        "sprite_game_images/explosion/8.png",
+        "sprite_game_images/explosion/9.png",
+        "sprite_game_images/explosion/10.png",
+        "sprite_game_images/explosion/11.png"
+    ]
+
+[[example]]
+    name = "klondike"
+    assets = [
+        "assets/klondike/cards-table-50-70.png",
+        "assets/klondike/point.png",
+    ]

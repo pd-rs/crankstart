@@ -1,12 +1,67 @@
 [package]
 name = "crankstart"
-description = "A crate whose aim is to let you write games for the Playdate handheld gaming system in Rust."
 version = "0.1.0"
 authors = ["Rob Tsuk <rob@tsuk.com>"]
-license = "MIT"
-homepage = "https://github.com/rtsuk/crankstart"
-repository = "https://github.com/rtsuk/crankstart"
 edition = "2018"
-readme = "README.md"
+
+[package.metadata.cargo-xbuild]
+memcpy = false
+sysroot_path = "target/sysroot"
+panic_immediate_abort = false
+
+[profile.dev]
+panic = "abort"
+opt-level = 'z'
+lto = true
+
+[profile.release]
+panic = "abort"
+opt-level = 'z'
+lto = true
+
+[workspace]
+members = [
+    "crankstart-sys",
+]
+
+[[example]]
+name = "hello_world"
+path = "examples/hello_world.rs"
+crate-type = ["staticlib", "cdylib"]
+
+[[example]]
+name = "life"
+path = "examples/life.rs"
+crate-type = ["staticlib", "cdylib"]
+
+[[example]]
+name = "sprite_game"
+path = "examples/sprite_game.rs"
+crate-type = ["staticlib", "cdylib"]
+
+[[example]]
+name = "klondike"
+path = "examples/klondike.rs"
+crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
+anyhow = { version = "1.0.31", default-features = false }
+hashbrown = "0.7.2"
+heapless = "0.5.5"
+crankstart-sys = { path = "crankstart-sys" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+syscall = "0.2.1"
+
+[dev-dependencies]
+randomize = "3.0.1"
+euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
+enum-iterator = "0.6.0"
+rand = { version = "", default-features = false, features = [ "alloc" ] }
+rand_pcg = "0.2.1"
+
+[dependencies.cstr_core]
+version = "0.2"
+default-features = false
+features = [ "alloc" ]
+
