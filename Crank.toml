@@ -1,4 +1,4 @@
-[[example]]
+[[target]]
     name = "sprite_game"
     assets = [
         "sprite_game_images/background.png",
@@ -14,12 +14,9 @@
         "sprite_game_images/explosion/6.png",
         "sprite_game_images/explosion/7.png",
         "sprite_game_images/explosion/8.png",
-        "sprite_game_images/explosion/9.png",
-        "sprite_game_images/explosion/10.png",
-        "sprite_game_images/explosion/11.png"
     ]
 
-[[example]]
+[[target]]
     name = "klondike"
     assets = [
         "assets/klondike/cards-table-50-70.png",
