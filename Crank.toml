@@ -15,10 +15,3 @@
         "sprite_game_images/explosion/7.png",
         "sprite_game_images/explosion/8.png",
     ]
-
-[[target]]
-    name = "klondike"
-    assets = [
-        "assets/klondike/cards-table-50-70.png",
-        "assets/klondike/point.png",
-    ]
