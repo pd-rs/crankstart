@@ -39,11 +39,6 @@ name = "sprite_game"
 path = "examples/sprite_game.rs"
 crate-type = ["staticlib", "cdylib"]
 
-[[example]]
-name = "klondike"
-path = "examples/klondike.rs"
-crate-type = ["staticlib", "cdylib"]
-
 [dependencies]
 anyhow = { version = "1.0.31", default-features = false }
 hashbrown = "0.7.2"

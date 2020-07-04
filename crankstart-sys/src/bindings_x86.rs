@@ -87,7 +87,7 @@ pub const LCD_ROWSIZE: u32 = 52;
 pub type __darwin_size_t = ctypes::c_ulong;
 pub type size_t = __darwin_size_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct PDRect {
     pub x: f32,
     pub y: f32,
@@ -138,7 +138,7 @@ fn bindgen_test_layout_PDRect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct LCDRect {
     pub left: ctypes::c_int,
     pub right: ctypes::c_int,
@@ -250,7 +250,7 @@ pub type LCDSpriteDrawFunction = ::core::option::Option<
     unsafe extern "C" fn(sprite: *mut LCDSprite, bounds: PDRect, frame: *mut u8, drawrect: LCDRect),
 >;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_graphics {
     pub getFrame: ::core::option::Option<unsafe extern "C" fn() -> *mut u8>,
     pub getDisplayFrame: ::core::option::Option<unsafe extern "C" fn() -> *mut u8>,
@@ -961,13 +961,13 @@ pub type PDPeripherals = u32;
 pub type PDCallbackFunction =
     ::core::option::Option<unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int>;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sys {
     pub realloc: ::core::option::Option<
         unsafe extern "C" fn(ptr: *mut ctypes::c_void, size: size_t) -> *mut ctypes::c_void,
     >,
     pub setUpdateCallback: ::core::option::Option<
-        unsafe extern "C" fn(update: PDCallbackFunction, ud: *mut ctypes::c_void),
+        unsafe extern "C" fn(update: PDCallbackFunction, userdata: *mut ctypes::c_void),
     >,
     pub getButtonState: ::core::option::Option<
         unsafe extern "C" fn(
@@ -1002,15 +1002,16 @@ pub struct playdate_sys {
     >,
     pub drawFPS: ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int)>,
     pub setOptionsCallback: ::core::option::Option<
-        unsafe extern "C" fn(callback: PDCallbackFunction, ud: *mut ctypes::c_void),
+        unsafe extern "C" fn(callback: PDCallbackFunction, userdata: *mut ctypes::c_void),
     >,
     pub isCrankDocked: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
+    pub getFlipped: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
 }
 #[test]
 fn bindgen_test_layout_playdate_sys() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sys>(),
-        136usize,
+        144usize,
         concat!("Size of: ", stringify!(playdate_sys))
     );
     assert_eq!(
@@ -1197,6 +1198,16 @@ fn bindgen_test_layout_playdate_sys() {
             stringify!(isCrankDocked)
         )
     );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).getFlipped as *const _ as usize },
+        136usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(getFlipped)
+        )
+    );
 }
 pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
@@ -1239,6 +1250,11 @@ fn bindgen_test_layout_luaL_Reg() {
             stringify!(func)
         )
     );
+}
+impl Default for luaL_Reg {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1304,6 +1320,11 @@ fn bindgen_test_layout_luaL_Val__bindgen_ty_2() {
         )
     );
 }
+impl Default for luaL_Val__bindgen_ty_2 {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[test]
 fn bindgen_test_layout_luaL_Val() {
     assert_eq!(
@@ -1347,6 +1368,11 @@ fn bindgen_test_layout_luaL_Val() {
         )
     );
 }
+impl Default for luaL_Val {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct LuaUDObject {
@@ -1363,7 +1389,7 @@ pub const LuaType_kTypeThread: LuaType = 7;
 pub const LuaType_kTypeObject: LuaType = 8;
 pub type LuaType = u32;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_lua {
     pub addFunction: ::core::option::Option<
         unsafe extern "C" fn(
@@ -1849,6 +1875,11 @@ fn bindgen_test_layout_json_value__bindgen_ty_1() {
         )
     );
 }
+impl Default for json_value__bindgen_ty_1 {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[test]
 fn bindgen_test_layout_json_value() {
     assert_eq!(
@@ -1881,6 +1912,11 @@ fn bindgen_test_layout_json_value() {
             stringify!(data)
         )
     );
+}
+impl Default for json_value {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2040,6 +2076,11 @@ fn bindgen_test_layout_json_decoder() {
         )
     );
 }
+impl Default for json_decoder {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct json_reader {
@@ -2080,6 +2121,11 @@ fn bindgen_test_layout_json_reader() {
             stringify!(userdata)
         )
     );
+}
+impl Default for json_reader {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
 }
 pub type writeFunc = ::core::option::Option<
     unsafe extern "C" fn(
@@ -2275,6 +2321,11 @@ fn bindgen_test_layout_json_encoder() {
         )
     );
 }
+impl Default for json_encoder {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 impl json_encoder {
     #[inline]
     pub fn pretty(&self) -> ctypes::c_int {
@@ -2349,7 +2400,7 @@ impl json_encoder {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_json {
     pub decode: ::core::option::Option<
         unsafe extern "C" fn(functions: json_decoder, reader: json_reader) -> ctypes::c_int,
@@ -2413,13 +2464,49 @@ fn bindgen_test_layout_playdate_json() {
     );
 }
 pub type SDFile = ctypes::c_void;
-pub const FileOptions_kFileRead: FileOptions = 1;
-pub const FileOptions_kFileReadData: FileOptions = 2;
-pub const FileOptions_kFileWrite: FileOptions = 4;
-pub const FileOptions_kFileAppend: FileOptions = 8;
-pub type FileOptions = u32;
+impl FileOptions {
+    pub const kFileRead: FileOptions = FileOptions(1);
+}
+impl FileOptions {
+    pub const kFileReadData: FileOptions = FileOptions(2);
+}
+impl FileOptions {
+    pub const kFileWrite: FileOptions = FileOptions(4);
+}
+impl FileOptions {
+    pub const kFileAppend: FileOptions = FileOptions(8);
+}
+impl ::core::ops::BitOr<FileOptions> for FileOptions {
+    type Output = Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self {
+        FileOptions(self.0 | other.0)
+    }
+}
+impl ::core::ops::BitOrAssign for FileOptions {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: FileOptions) {
+        self.0 |= rhs.0;
+    }
+}
+impl ::core::ops::BitAnd<FileOptions> for FileOptions {
+    type Output = Self;
+    #[inline]
+    fn bitand(self, other: Self) -> Self {
+        FileOptions(self.0 & other.0)
+    }
+}
+impl ::core::ops::BitAndAssign for FileOptions {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: FileOptions) {
+        self.0 &= rhs.0;
+    }
+}
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct FileOptions(pub u32);
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct FileStat {
     pub isdir: ctypes::c_int,
     pub size: ctypes::c_uint,
@@ -2524,7 +2611,7 @@ fn bindgen_test_layout_FileStat() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_file {
     pub listfiles: ::core::option::Option<
         unsafe extern "C" fn(
@@ -2722,7 +2809,7 @@ pub enum SpriteCollisionResponseType {
     kCollisionTypeBounce = 3,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct CollisionPoint {
     pub x: f32,
     pub y: f32,
@@ -2761,7 +2848,7 @@ fn bindgen_test_layout_CollisionPoint() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct CollisionVector {
     pub x: ctypes::c_int,
     pub y: ctypes::c_int,
@@ -2928,6 +3015,11 @@ fn bindgen_test_layout_SpriteCollisionInfo() {
         )
     );
 }
+impl Default for SpriteCollisionInfo {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SpriteQueryInfo {
@@ -3000,6 +3092,11 @@ fn bindgen_test_layout_SpriteQueryInfo() {
         )
     );
 }
+impl Default for SpriteQueryInfo {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 pub type LCDSpriteUpdateFunction =
     ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite)>;
 pub type LCDSpriteCollisionFilterProc = ::core::option::Option<
@@ -3009,7 +3106,7 @@ pub type LCDSpriteCollisionFilterProc = ::core::option::Option<
     ) -> SpriteCollisionResponseType,
 >;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sprite {
     pub newSprite: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDSprite>,
     pub freeSprite: ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite)>,
@@ -3806,7 +3903,7 @@ pub const SoundFormat_kSoundADPCMMono: SoundFormat = 4;
 pub const SoundFormat_kSoundADPCMStereo: SoundFormat = 5;
 pub type SoundFormat = u32;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_fileplayer {
     pub newPlayer:
         ::core::option::Option<unsafe extern "C" fn(bufferSize: ctypes::c_int) -> *mut FilePlayer>,
@@ -4118,7 +4215,7 @@ fn bindgen_test_layout_playdate_sound_fileplayer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_sample {
     pub newSampleBuffer:
         ::core::option::Option<unsafe extern "C" fn(byteCount: ctypes::c_int) -> *mut AudioSample>,
@@ -4246,7 +4343,7 @@ fn bindgen_test_layout_playdate_sound_sample() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_sampleplayer {
     pub newPlayer: ::core::option::Option<unsafe extern "C" fn() -> *mut SamplePlayer>,
     pub freePlayer: ::core::option::Option<unsafe extern "C" fn(player: *mut SamplePlayer)>,
@@ -4509,7 +4606,7 @@ pub type AudioInputFunction = ::core::option::Option<
     ) -> ctypes::c_int,
 >;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_channel {}
 #[test]
 fn bindgen_test_layout_playdate_sound_channel() {
@@ -4525,7 +4622,7 @@ fn bindgen_test_layout_playdate_sound_channel() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_synth {}
 #[test]
 fn bindgen_test_layout_playdate_sound_synth() {
@@ -4541,7 +4638,7 @@ fn bindgen_test_layout_playdate_sound_synth() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_sequencer {}
 #[test]
 fn bindgen_test_layout_playdate_sound_sequencer() {
@@ -4557,7 +4654,7 @@ fn bindgen_test_layout_playdate_sound_sequencer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_effect {}
 #[test]
 fn bindgen_test_layout_playdate_sound_effect() {
@@ -4573,7 +4670,7 @@ fn bindgen_test_layout_playdate_sound_effect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_sound_signal {}
 #[test]
 fn bindgen_test_layout_playdate_sound_signal() {
@@ -4745,8 +4842,13 @@ fn bindgen_test_layout_playdate_sound() {
         )
     );
 }
+impl Default for playdate_sound {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct playdate_display {
     pub getWidth: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
     pub getHeight: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
@@ -4756,12 +4858,14 @@ pub struct playdate_display {
         ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_uint, y: ctypes::c_uint)>,
     pub setRefreshRate: ::core::option::Option<unsafe extern "C" fn(rate: f32)>,
     pub setOffset: ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int)>,
+    pub setFlipped:
+        ::core::option::Option<unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int)>,
 }
 #[test]
 fn bindgen_test_layout_playdate_display() {
     assert_eq!(
         ::core::mem::size_of::<playdate_display>(),
-        56usize,
+        64usize,
         concat!("Size of: ", stringify!(playdate_display))
     );
     assert_eq!(
@@ -4839,6 +4943,16 @@ fn bindgen_test_layout_playdate_display() {
             stringify!(playdate_display),
             "::",
             stringify!(setOffset)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_display>())).setFlipped as *const _ as usize },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_display),
+            "::",
+            stringify!(setFlipped)
         )
     );
 }
@@ -4946,6 +5060,11 @@ fn bindgen_test_layout_PlaydateAPI() {
             stringify!(json)
         )
     );
+}
+impl Default for PlaydateAPI {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
 }
 pub const PDSystemEvent_kEventInit: PDSystemEvent = 0;
 pub const PDSystemEvent_kEventInitLua: PDSystemEvent = 1;

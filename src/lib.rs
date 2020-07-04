@@ -5,6 +5,7 @@
 extern crate alloc;
 
 pub mod display;
+pub mod file;
 pub mod graphics;
 pub mod sprite;
 pub mod system;
@@ -12,6 +13,7 @@ pub mod system;
 use {
     crate::{
         display::Display,
+        file::FileSystem,
         graphics::{Graphics, PDRect},
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
@@ -45,6 +47,11 @@ impl Playdate {
     pub fn graphics(&self) -> Graphics {
         let graphics = unsafe { (*self.playdate).graphics };
         Graphics::new(graphics)
+    }
+
+    pub fn file(&self) -> FileSystem {
+        let file = unsafe { (*self.playdate).file };
+        FileSystem::new(file)
     }
 
     pub fn display(&self) -> Display {
