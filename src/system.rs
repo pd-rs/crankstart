@@ -67,6 +67,12 @@ impl System {
         }
     }
 
+    pub fn get_seconds_since_epoch(&self) -> Result<(usize, usize), Error> {
+        let mut miliseconds = 0;
+        let seconds = pd_func_caller!((*self.0).getSecondsSinceEpoch, &mut miliseconds)?;
+        Ok((seconds as usize, miliseconds as usize))
+    }
+
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).drawFPS, x, y)
     }

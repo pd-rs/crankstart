@@ -1,6 +1,6 @@
 # Rust for Playdate
 
-You've stumbled across a barely functional, wildly incomplete and basically undocumented Rust crate whose aim is to let you write Games for the [Playdate handheld gaming system](https://play.date) in [Rust](https://www.rust-lang.org).
+You've stumbled across a barely functional, wildly incomplete and basically undocumented Rust crate whose aim is to let you write games for the [Playdate handheld gaming system](https://play.date) in [Rust](https://www.rust-lang.org).
 
 This software is not sponsored or supported by Panic.
 

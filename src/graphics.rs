@@ -18,8 +18,7 @@ use {
     hashbrown::HashMap,
 };
 
-pub use crankstart_sys::LCDRect;
-pub use crankstart_sys::PDRect;
+pub use crankstart_sys::{LCDColor, LCDRect, PDRect};
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     PDRect {
@@ -362,6 +361,58 @@ impl Graphics {
         pd_func_caller!((*self.0).clear, color as usize)
     }
 
+    pub fn fill_triangle(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
+        x3: i32,
+        y3: i32,
+        color: SolidColor,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).fillTriangle,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            x1,
+            y1,
+            x2,
+            y2,
+            x3,
+            y3,
+            color as usize,
+            clip
+        )
+    }
+
+    pub fn fill_rect(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        color: SolidColor,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).fillRect,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            x,
+            y,
+            width,
+            height,
+            color as usize,
+            clip
+        )
+    }
+
     pub fn load_font(&self, path: &str) -> Result<Font, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), ptr::null_mut())?;
@@ -394,6 +445,18 @@ impl Graphics {
             mode.into(),
             tracking,
             clip,
+        )
+    }
+
+    pub fn get_text_width(&self, font: &Font, text: &str, tracking: i32) -> Result<i32, Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).getTextWidth,
+            font.0,
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len() as size_t,
+            PDStringEncoding_kUTF8Encoding,
+            tracking,
         )
     }
 }
