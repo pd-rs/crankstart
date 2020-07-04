@@ -50,9 +50,6 @@ hashbrown = "0.7.2"
 heapless = "0.5.5"
 crankstart-sys = { path = "crankstart-sys" }
 
-[target.'cfg(target_os = "macos")'.dependencies]
-syscall = "0.2.1"
-
 [dev-dependencies]
 randomize = "3.0.1"
 euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
