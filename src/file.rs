@@ -26,7 +26,8 @@ impl FileSystem {
     pub fn stat(&self, path: &str) -> Result<FileStat, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut file_stat = FileStat::default();
-        pd_func_caller!((*self.0).stat, c_path.as_ptr(), &mut file_stat)?;
+        let result = pd_func_caller!((*self.0).stat, c_path.as_ptr(), &mut file_stat)?;
+        ensure!(result == 0, "Error: {} from stat", result);
         Ok(file_stat)
     }
 
@@ -53,7 +54,7 @@ impl File {
             buf.as_mut_ptr() as *mut core::ffi::c_void,
             buf.len() as u32
         )?;
-        ensure!(result >= 0, "Error from read");
+        ensure!(result >= 0, "Error {} from read", result);
         Ok(result as usize)
     }
 }
