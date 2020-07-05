@@ -41,17 +41,14 @@ impl Playdate {
             (*playdate).sprite
         };
         SpriteManager::new(playdate_sprite, sprite_update, sprite_draw);
+        let file = unsafe { (*playdate).file };
+        FileSystem::new(file);
         Self { playdate }
     }
 
     pub fn graphics(&self) -> Graphics {
         let graphics = unsafe { (*self.playdate).graphics };
         Graphics::new(graphics)
-    }
-
-    pub fn file(&self) -> FileSystem {
-        let file = unsafe { (*self.playdate).file };
-        FileSystem::new(file)
     }
 
     pub fn display(&self) -> Display {
