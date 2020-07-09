@@ -98,6 +98,21 @@ impl BitmapInner {
             graphics: self.graphics.clone(),
         })
     }
+
+    pub fn transform(&self, rotation: f32, scale_x: f32, scale_y: f32) -> Result<Self, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*self.graphics.0).transformedBitmap,
+            self.raw_bitmap,
+            rotation,
+            scale_x,
+            scale_y,
+            core::ptr::null_mut(),
+        )?;
+        Ok(Self {
+            raw_bitmap,
+            graphics: self.graphics.clone(),
+        })
+    }
 }
 
 impl Drop for BitmapInner {
@@ -141,6 +156,13 @@ impl Bitmap {
         self.inner
             .borrow()
             .draw(target, stencil, x, y, mode, flip, clip)
+    }
+
+    pub fn transform(&self, rotation: f32, scale_x: f32, scale_y: f32) -> Result<Bitmap, Error> {
+        let inner = self.inner.borrow().transform(rotation, scale_x, scale_y)?;
+        Ok(Self {
+            inner: Rc::new(RefCell::new(inner)),
+        })
     }
 }
 
@@ -190,6 +212,7 @@ impl From<BitmapDrawMode> for LCDBitmapDrawMode {
     }
 }
 
+#[derive(Debug)]
 pub enum BitmapFlip {
     Unflipped,
     FlippedX,
@@ -228,6 +251,7 @@ impl From<SolidColor> for LCDSolidColor {
     }
 }
 
+#[derive(Debug)]
 struct BitmapTableInner {
     raw_bitmap_table: *mut LCDBitmapTable,
     bitmaps: HashMap<usize, Bitmap>,
@@ -266,6 +290,7 @@ impl Drop for BitmapTableInner {
 
 type BitmapTableInnerPtr = Rc<RefCell<BitmapTableInner>>;
 
+#[derive(Clone, Debug)]
 pub struct BitmapTable {
     inner: BitmapTableInnerPtr,
 }
@@ -306,6 +331,16 @@ impl Graphics {
 
     pub fn mark_updated_rows(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).markUpdatedRows, x, y)
+    }
+
+    pub fn new_bitmap(&self, width: i32, height: i32, bg_color: SolidColor) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!((*self.0).newBitmap, width, height, bg_color as usize)?;
+        Ok(Bitmap {
+            inner: Rc::new(RefCell::new(BitmapInner {
+                raw_bitmap,
+                graphics: self.clone(),
+            })),
+        })
     }
 
     pub fn load_bitmap(&self, path: &str) -> Result<Bitmap, Error> {

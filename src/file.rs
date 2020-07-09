@@ -71,9 +71,6 @@ impl Drop for File {
     fn drop(&mut self) {
         let file_sys = FileSystem::get();
         let sd_file = self.0;
-        pd_func_caller_log!(
-            (*file_sys.0).close,
-            sd_file,
-        );
+        pd_func_caller_log!((*file_sys.0).close, sd_file,);
     }
 }
