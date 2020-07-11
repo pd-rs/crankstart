@@ -73,6 +73,10 @@ impl System {
         Ok((seconds as usize, miliseconds as usize))
     }
 
+    pub fn get_current_time_milliseconds(&self) -> Result<usize, Error> {
+        Ok(pd_func_caller!((*self.0).getCurrentTimeMilliseconds)? as usize)
+    }
+
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).drawFPS, x, y)
     }

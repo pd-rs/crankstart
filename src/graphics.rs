@@ -333,7 +333,12 @@ impl Graphics {
         pd_func_caller!((*self.0).markUpdatedRows, x, y)
     }
 
-    pub fn new_bitmap(&self, width: i32, height: i32, bg_color: SolidColor) -> Result<Bitmap, Error> {
+    pub fn new_bitmap(
+        &self,
+        width: i32,
+        height: i32,
+        bg_color: SolidColor,
+    ) -> Result<Bitmap, Error> {
         let raw_bitmap = pd_func_caller!((*self.0).newBitmap, width, height, bg_color as usize)?;
         Ok(Bitmap {
             inner: Rc::new(RefCell::new(BitmapInner {
