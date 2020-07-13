@@ -13,7 +13,12 @@ use {
         rc::{Rc, Weak},
     },
     anyhow::{anyhow, Error, Result},
-    core::{cell::RefCell, fmt::Debug, slice},
+    core::{
+        cell::RefCell,
+        fmt::Debug,
+        hash::{Hash, Hasher},
+        slice,
+    },
     crankstart_sys::{
         playdate_sprite, LCDRect, LCDSprite, LCDSpriteCollisionFilterProc, SpriteCollisionInfo,
     },
@@ -191,6 +196,10 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).setBounds, self.raw_sprite, *bounds)
     }
 
+    pub fn get_z_index(&self) -> Result<i16, Error> {
+        pd_func_caller!((*self.playdate_sprite).getZIndex, self.raw_sprite)
+    }
+
     pub fn set_z_index(&self, z_index: i16) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).setZIndex, self.raw_sprite, z_index)
     }
@@ -322,6 +331,13 @@ impl Sprite {
             .set_bounds(bounds)
     }
 
+    pub fn get_z_index(&self) -> Result<i16, Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .get_z_index()
+    }
+
     pub fn set_z_index(&self, z_index: i16) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
@@ -384,11 +400,19 @@ impl Sprite {
     }
 }
 
+impl Hash for Sprite {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.borrow().raw_sprite.hash(state);
+    }
+}
+
 impl PartialEq for Sprite {
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
+
+impl Eq for Sprite {}
 
 pub struct SpriteManager {
     pub playdate_sprite: *mut playdate_sprite,
