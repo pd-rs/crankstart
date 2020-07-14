@@ -9,7 +9,7 @@ use {
         crankstart_game,
         graphics::{rect_make, Bitmap, BitmapData, BitmapDrawMode, BitmapFlip, LCDRect},
         log_to_console,
-        sprite::{Sprite, SpriteManager},
+        sprite::{Sprite, SpriteCollider, SpriteManager},
         Game, Playdate,
     },
     crankstart_sys::{
@@ -25,6 +25,15 @@ struct BackgroundHandler {
     background_image: Bitmap,
     y: i32,
     height: i32,
+}
+
+#[derive(Debug)]
+struct OverlapCollider;
+
+impl SpriteCollider for OverlapCollider {
+    fn response_type(&self, _: Sprite, _: Sprite) -> SpriteCollisionResponseType {
+        SpriteCollisionResponseType::kCollisionTypeOverlap
+    }
 }
 
 fn remove_sprite_from_list(sprites: &mut Vec<Sprite>, target: &Sprite) {
@@ -341,9 +350,7 @@ impl SpriteGame {
             player_image_data.height as f32 - 10.0,
         );
         player.set_collide_rect(&cr)?;
-        player.set_collision_response_type(Some(
-            SpriteCollisionResponseType::kCollisionTypeOverlap,
-        ))?;
+        player.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
         player.set_tag(SpriteType::Player as u8)?;
 
         player.move_to(center_x as f32, center_y as f32)?;
@@ -427,9 +434,7 @@ impl SpriteGame {
             bullet_image_data.height as f32,
         );
         bullet.set_collide_rect(&cr)?;
-        bullet.set_collision_response_type(Some(
-            SpriteCollisionResponseType::kCollisionTypeOverlap,
-        ))?;
+        bullet.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
         bullet.move_to(x as f32, y as f32)?;
         bullet.set_z_index(999)?;
         sprite_manager.add_sprite(&bullet)?;
@@ -465,9 +470,7 @@ impl SpriteGame {
     fn create_enemy_plane(&mut self) -> Result<(), Error> {
         let sprite_manager = SpriteManager::get_mut();
         let mut plane = sprite_manager.new_sprite()?;
-        plane.set_collision_response_type(Some(
-            SpriteCollisionResponseType::kCollisionTypeOverlap,
-        ))?;
+        plane.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
         let plane_image_data = self.enemy_plane_image.get_data()?;
         plane.set_image(self.enemy_plane_image.clone(), BitmapFlip::Unflipped)?;
         let cr = rect_make(

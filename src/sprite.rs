@@ -42,8 +42,12 @@ pub type SpriteCollideFunction = unsafe extern "C" fn(
 static mut SPRITE_UPDATE: Option<SpriteUpdateFunction> = None;
 static mut SPRITE_DRAW: Option<SpriteDrawFunction> = None;
 
+pub trait SpriteCollider: Debug + 'static {
+    fn response_type(&self, sprite: Sprite, other: Sprite) -> SpriteCollisionResponseType;
+}
+
 pub type SpriteCollisionResponses =
-    HashMap<*const crankstart_sys::LCDSprite, SpriteCollisionResponseType>;
+    HashMap<*const crankstart_sys::LCDSprite, Box<dyn SpriteCollider>>;
 
 static mut SPRITE_COLLISION_RESPONSES: Option<SpriteCollisionResponses> = None;
 static mut SPRITE_MANAGER: Option<SpriteManager> = None;
@@ -126,6 +130,17 @@ extern "C" fn get_sprite_collision_response(
     sprite: *mut crankstart_sys::LCDSprite,
     other: *mut crankstart_sys::LCDSprite,
 ) -> SpriteCollisionResponseType {
+    if let Some(collision_responses) = unsafe { SPRITE_COLLISION_RESPONSES.as_ref() } {
+        let collider = collision_responses.get(&(sprite as *const crankstart_sys::LCDSprite));
+        if let Some(collider) = collider {
+            if let Some(sprite) = SpriteManager::get_sprite_static(sprite) {
+                if let Some(other) = SpriteManager::get_sprite_static(other) {
+                    return collider.response_type(sprite, other);
+                }
+            }
+        }
+    }
+
     SpriteCollisionResponseType::kCollisionTypeOverlap
 }
 
@@ -136,8 +151,12 @@ impl SpriteInner {
 
     pub fn set_collision_response_type(
         &mut self,
-        response_type: Option<SpriteCollisionResponseType>,
+        response_type: Option<Box<dyn SpriteCollider>>,
     ) -> Result<(), Error> {
+        log_to_console!(
+            "SpriteInner::set_collision_response_type {:?}",
+            response_type
+        );
         if let Some(response_type) = response_type {
             unsafe {
                 if let Some(collision_responses) = SPRITE_COLLISION_RESPONSES.as_mut() {
@@ -181,6 +200,11 @@ impl SpriteInner {
         &self,
         f: LCDSpriteCollisionFilterProc,
     ) -> Result<(), Error> {
+        log_to_console!(
+            "SpriteInner::set_collision_response_function {:?} {:?}",
+            self.raw_sprite,
+            f
+        );
         pd_func_caller!(
             (*self.playdate_sprite).setCollisionResponseFunction,
             self.raw_sprite,
@@ -312,7 +336,7 @@ impl Sprite {
 
     pub fn set_collision_response_type(
         &mut self,
-        response_type: Option<SpriteCollisionResponseType>,
+        response_type: Option<Box<dyn SpriteCollider>>,
     ) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
@@ -467,6 +491,10 @@ impl SpriteManager {
             (*self.playdate_sprite).addSprite,
             sprite.inner.borrow().raw_sprite
         )
+    }
+
+    pub fn get_sprite_static(raw_sprite: *const LCDSprite) -> Option<Sprite> {
+        Self::get_mut().get_sprite(raw_sprite)
     }
 
     pub fn get_sprite(&self, raw_sprite: *const LCDSprite) -> Option<Sprite> {
