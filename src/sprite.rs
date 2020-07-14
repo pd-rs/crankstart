@@ -153,10 +153,6 @@ impl SpriteInner {
         &mut self,
         response_type: Option<Box<dyn SpriteCollider>>,
     ) -> Result<(), Error> {
-        log_to_console!(
-            "SpriteInner::set_collision_response_type {:?}",
-            response_type
-        );
         if let Some(response_type) = response_type {
             unsafe {
                 if let Some(collision_responses) = SPRITE_COLLISION_RESPONSES.as_mut() {
@@ -200,11 +196,6 @@ impl SpriteInner {
         &self,
         f: LCDSpriteCollisionFilterProc,
     ) -> Result<(), Error> {
-        log_to_console!(
-            "SpriteInner::set_collision_response_function {:?} {:?}",
-            self.raw_sprite,
-            f
-        );
         pd_func_caller!(
             (*self.playdate_sprite).setCollisionResponseFunction,
             self.raw_sprite,

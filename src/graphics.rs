@@ -117,7 +117,6 @@ impl BitmapInner {
 
 impl Drop for BitmapInner {
     fn drop(&mut self) {
-        log_to_console!("dropping bitmap {}", self.raw_bitmap as u64);
         pd_func_caller_log!((*self.graphics.0).freeBitmap, self.raw_bitmap);
     }
 }
@@ -283,7 +282,6 @@ impl BitmapTableInner {
 
 impl Drop for BitmapTableInner {
     fn drop(&mut self) {
-        log_to_console!("dropping bitmap table {}", self.raw_bitmap_table as u64);
         pd_func_caller_log!((*self.graphics.0).freeBitmapTable, self.raw_bitmap_table);
     }
 }
