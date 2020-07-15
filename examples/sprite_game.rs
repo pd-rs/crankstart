@@ -7,7 +7,7 @@ use {
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        graphics::{rect_make, Bitmap, BitmapData, BitmapDrawMode, BitmapFlip, LCDRect},
+        graphics::{rect_make, Bitmap, BitmapData, BitmapDrawMode, BitmapFlip, LCDRect, PDRect},
         log_to_console,
         sprite::{Sprite, SpriteCollider, SpriteManager},
         Game, Playdate,
@@ -561,7 +561,13 @@ impl Game for SpriteGame {
         Ok(())
     }
 
-    fn draw_sprite(&self, sprite: &Sprite, _playdate: &Playdate) -> Result<(), Error> {
+    fn draw_sprite(
+        &self,
+        sprite: &Sprite,
+        _bounds: &PDRect,
+        _draw_rect: &LCDRect,
+        _playdate: &Playdate,
+    ) -> Result<(), Error> {
         let tag = sprite.get_tag()?.into();
         match tag {
             SpriteType::Background => self.background_handler.draw()?,

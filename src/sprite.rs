@@ -484,6 +484,10 @@ impl SpriteManager {
         )
     }
 
+    pub fn add_dirty_rect(dirty_rect: LCDRect) -> Result<(), Error> {
+        pd_func_caller!((*Self::get_mut().playdate_sprite).addDirtyRect, dirty_rect)
+    }
+
     pub fn get_sprite_static(raw_sprite: *const LCDSprite) -> Option<Sprite> {
         Self::get_mut().get_sprite(raw_sprite)
     }

@@ -105,7 +105,13 @@ pub trait Game {
         Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method"))
     }
 
-    fn draw_sprite(&self, sprite: &Sprite, playdate: &Playdate) -> Result<(), Error> {
+    fn draw_sprite(
+        &self,
+        sprite: &Sprite,
+        bounds: &PDRect,
+        draw_rect: &LCDRect,
+        playdate: &Playdate,
+    ) -> Result<(), Error> {
         Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method"))
     }
 
@@ -181,11 +187,11 @@ impl<T: 'static + Game> GameRunner<T> {
         sprite: *mut LCDSprite,
         bounds: PDRect,
         frame: *mut u8,
-        drawrect: LCDRect,
+        draw_rect: LCDRect,
     ) {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
-                match game.draw_sprite(&sprite, &self.playdate) {
+                match game.draw_sprite(&sprite, &bounds, &draw_rect, &self.playdate) {
                     Err(err) => log_to_console!("Error in draw_sprite: {}", err),
                     _ => (),
                 }
