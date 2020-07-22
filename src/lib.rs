@@ -283,6 +283,14 @@ macro_rules! crankstart_game {
     };
 }
 
+fn abort_with_addr(addr: usize) -> ! {
+    let p = addr as *mut i32;
+    unsafe {
+        *p = 0;
+    }
+    core::intrinsics::abort()
+}
+
 #[panic_handler]
 fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
     use {
@@ -313,10 +321,12 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
         unsafe {
             core::intrinsics::breakpoint();
         }
-        loop {}
+        abort_with_addr(0xdeadbeef);
     }
     #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
-    loop {}
+    {
+        abort_with_addr(0xdeadbeef);
+    }
 }
 
 use core::alloc::{GlobalAlloc, Layout};
@@ -356,7 +366,7 @@ pub(crate) static mut A: PlaydateAllocator = PlaydateAllocator { system: None };
 #[alloc_error_handler]
 fn alloc_error(_layout: Layout) -> ! {
     System::log_to_console("Out of Memory\0");
-    loop {}
+    abort_with_addr(0xDEADFA11);
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
