@@ -30,3 +30,37 @@ pub mod ctypes {
 include!("bindings_x86.rs");
 #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
 include!("bindings_arm.rs");
+
+impl From<euclid::default::Rect<i32>> for LCDRect {
+    fn from(r: euclid::default::Rect<i32>) -> Self {
+        LCDRect {
+            top: r.max_y(),
+            bottom: r.min_y(),
+            left: r.min_x(),
+            right: r.max_x(),
+        }
+    }
+}
+
+impl From<LCDRect> for euclid::default::Rect<i32> {
+    fn from(r: LCDRect) -> Self {
+        euclid::rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
+    }
+}
+
+impl From<euclid::default::Rect<f32>> for PDRect {
+    fn from(r: euclid::default::Rect<f32>) -> Self {
+        PDRect {
+            x: r.origin.x,
+            y: r.origin.y,
+            width: r.size.width,
+            height: r.size.height,
+        }
+    }
+}
+
+impl From<PDRect> for euclid::default::Rect<f32> {
+    fn from(r: PDRect) -> Self {
+        euclid::rect(r.x, r.y, r.width, r.height)
+    }
+}

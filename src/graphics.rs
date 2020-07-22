@@ -331,6 +331,10 @@ impl Graphics {
         pd_func_caller!((*self.0).markUpdatedRows, x, y)
     }
 
+    pub fn set_draw_offset(&self, x: i32, y: i32) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setDrawOffset, x, y)
+    }
+
     pub fn new_bitmap(
         &self,
         width: i32,
