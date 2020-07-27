@@ -327,6 +327,10 @@ impl Graphics {
         Ok(frame)
     }
 
+    pub fn set_background_color(&self, bg_color: SolidColor) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setBackgroundColor, bg_color as usize)
+    }
+
     pub fn mark_updated_rows(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).markUpdatedRows, x, y)
     }
