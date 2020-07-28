@@ -1,24 +1,22 @@
 use {
-    crate::{log_to_console, pd_func_caller, pd_func_caller_log, system::System},
+    crate::{
+        geometry::{ScreenPoint, ScreenRect, ScreenSize, ScreenVector},
+        log_to_console, pd_func_caller, pd_func_caller_log,
+        system::System,
+    },
     alloc::{format, rc::Rc},
     anyhow::{anyhow, ensure, Error},
-    core::{cell::RefCell, ptr, slice},
-    crankstart_sys::{
-        ctypes::c_int, size_t, LCDBitmapDrawMode, LCDBitmapDrawMode_kDrawModeBlackTransparent,
-        LCDBitmapDrawMode_kDrawModeCopy, LCDBitmapDrawMode_kDrawModeFillBlack,
-        LCDBitmapDrawMode_kDrawModeFillWhite, LCDBitmapDrawMode_kDrawModeInverted,
-        LCDBitmapDrawMode_kDrawModeNXOR, LCDBitmapDrawMode_kDrawModeWhiteTransparent,
-        LCDBitmapDrawMode_kDrawModeXOR, LCDBitmapFlip, LCDBitmapFlip_kBitmapFlippedX,
-        LCDBitmapFlip_kBitmapFlippedXY, LCDBitmapFlip_kBitmapFlippedY,
-        LCDBitmapFlip_kBitmapUnflipped, LCDBitmapTable, LCDSolidColor, LCDSolidColor_kColorBlack,
-        LCDSolidColor_kColorClear, LCDSolidColor_kColorWhite, LCDSolidColor_kColorXOR,
-        PDStringEncoding_kUTF8Encoding, LCD_ROWS, LCD_ROWSIZE,
-    },
+    core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
+    crankstart_sys::{ctypes::c_int, size_t, LCDBitmapTable, LCDPattern},
     cstr_core::{CStr, CString},
+    euclid::default::{Point2D, Vector2D},
     hashbrown::HashMap,
 };
 
-pub use crankstart_sys::{LCDColor, LCDRect, PDRect};
+pub use crankstart_sys::{
+    LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDRect, LCDSolidColor, PDRect,
+    PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
+};
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     PDRect {
@@ -26,6 +24,23 @@ pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
         y,
         width,
         height,
+    }
+}
+
+pub enum LCDColor {
+    Solid(LCDSolidColor),
+    Pattern(LCDPattern),
+}
+
+impl From<LCDColor> for usize {
+    fn from(color: LCDColor) -> Self {
+        match color {
+            LCDColor::Solid(solid_color) => solid_color as usize,
+            LCDColor::Pattern(pattern) => {
+                let pattern_ptr = &pattern as *const u8;
+                pattern_ptr as usize
+            }
+        }
     }
 }
 
@@ -40,7 +55,6 @@ pub struct BitmapData {
 #[derive(Debug)]
 pub struct BitmapInner {
     pub(crate) raw_bitmap: *mut crankstart_sys::LCDBitmap,
-    graphics: Graphics,
 }
 
 impl BitmapInner {
@@ -50,7 +64,7 @@ impl BitmapInner {
         let mut rowbytes = 0;
         let mut hasmask = 0;
         pd_func_caller!(
-            (*self.graphics.0).getBitmapData,
+            (*Graphics::get_ptr()).getBitmapData,
             self.raw_bitmap,
             &mut width,
             &mut height,
@@ -70,19 +84,18 @@ impl BitmapInner {
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        x: i32,
-        y: i32,
-        mode: BitmapDrawMode,
-        flip: BitmapFlip,
+        location: ScreenPoint,
+        mode: LCDBitmapDrawMode,
+        flip: LCDBitmapFlip,
         clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
-            (*self.graphics.0).drawBitmap,
+            (*Graphics::get_ptr()).drawBitmap,
             self.raw_bitmap,
             raw_bitmap(target),
             raw_bitmap(stencil),
-            x,
-            y,
+            location.x,
+            location.y,
             mode.into(),
             flip.into(),
             clip,
@@ -90,34 +103,145 @@ impl BitmapInner {
         Ok(())
     }
 
-    pub fn duplicate(&self) -> Result<Self, Error> {
-        let raw_bitmap = pd_func_caller!((*self.graphics.0).copyBitmap, self.raw_bitmap)?;
-
-        Ok(Self {
-            raw_bitmap,
-            graphics: self.graphics.clone(),
-        })
+    pub fn draw_scaled(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        location: ScreenPoint,
+        scale: Vector2D<f32>,
+        mode: LCDBitmapDrawMode,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).drawScaledBitmap,
+            self.raw_bitmap,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            location.x,
+            location.y,
+            scale.x,
+            scale.y,
+            mode.into(),
+            clip,
+        )
     }
 
-    pub fn transform(&self, rotation: f32, scale_x: f32, scale_y: f32) -> Result<Self, Error> {
+    pub fn tile(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        location: ScreenPoint,
+        size: ScreenSize,
+        mode: LCDBitmapDrawMode,
+        flip: LCDBitmapFlip,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).tileBitmap,
+            self.raw_bitmap,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            location.x,
+            location.y,
+            size.width,
+            size.height,
+            mode.into(),
+            flip.into(),
+            clip,
+        )?;
+        Ok(())
+    }
+
+    pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).clearBitmap,
+            self.raw_bitmap,
+            color.into()
+        )
+    }
+
+    pub fn duplicate(&self) -> Result<Self, Error> {
+        let raw_bitmap = pd_func_caller!((*Graphics::get_ptr()).copyBitmap, self.raw_bitmap)?;
+
+        Ok(Self { raw_bitmap })
+    }
+
+    pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
         let raw_bitmap = pd_func_caller!(
-            (*self.graphics.0).transformedBitmap,
+            (*Graphics::get_ptr()).transformedBitmap,
             self.raw_bitmap,
             rotation,
-            scale_x,
-            scale_y,
+            scale.x,
+            scale.y,
             core::ptr::null_mut(),
         )?;
-        Ok(Self {
-            raw_bitmap,
-            graphics: self.graphics.clone(),
-        })
+        Ok(Self { raw_bitmap })
+    }
+
+    pub fn into_color(&self, bitmap: Bitmap, top_left: Point2D<i32>) -> Result<LCDColor, Error> {
+        let mut pattern = LCDPattern::default();
+        let pattern_ptr = pattern.as_mut_ptr();
+        let mut pattern_val = pattern_ptr as usize;
+        let graphics = Graphics::get();
+        pd_func_caller!(
+            (*graphics.0).setColorToPattern,
+            &mut pattern_val,
+            self.raw_bitmap,
+            top_left.x,
+            top_left.y
+        )?;
+        Ok(LCDColor::Pattern(pattern))
+    }
+
+    pub fn load(&self, path: &str) -> Result<(), Error> {
+        let c_path = CString::new(path).map_err(Error::msg)?;
+        let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
+        let graphics = Graphics::get();
+        pd_func_caller!(
+            (*graphics.0).loadIntoBitmap,
+            c_path.as_ptr(),
+            self.raw_bitmap,
+            &mut out_err
+        )?;
+        if out_err != ptr::null_mut() {
+            let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
+            Err(anyhow!(err_msg))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn check_mask_collision(
+        &self,
+        my_location: ScreenPoint,
+        my_flip: LCDBitmapFlip,
+        other: Bitmap,
+        other_location: ScreenPoint,
+        other_flip: LCDBitmapFlip,
+        rect: ScreenRect,
+    ) -> Result<bool, Error> {
+        let graphics = Graphics::get();
+        let other_raw = other.inner.borrow().raw_bitmap;
+        let lcd_rect: LCDRect = rect.to_untyped().into();
+        let pixels_covered = pd_func_caller!(
+            (*graphics.0).checkMaskCollision,
+            self.raw_bitmap,
+            my_location.x,
+            my_location.y,
+            my_flip,
+            other_raw,
+            other_location.x,
+            other_location.y,
+            other_flip,
+            lcd_rect,
+        )?;
+        Ok(pixels_covered != 0)
     }
 }
 
 impl Drop for BitmapInner {
     fn drop(&mut self) {
-        pd_func_caller_log!((*self.graphics.0).freeBitmap, self.raw_bitmap);
+        pd_func_caller_log!((*Graphics::get_ptr()).freeBitmap, self.raw_bitmap);
     }
 }
 
@@ -129,12 +253,9 @@ pub struct Bitmap {
 }
 
 impl Bitmap {
-    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap, graphics: &Graphics) -> Self {
+    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap) -> Self {
         Bitmap {
-            inner: Rc::new(RefCell::new(BitmapInner {
-                raw_bitmap,
-                graphics: graphics.clone(),
-            })),
+            inner: Rc::new(RefCell::new(BitmapInner { raw_bitmap })),
         }
     }
 
@@ -146,22 +267,82 @@ impl Bitmap {
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        x: i32,
-        y: i32,
-        mode: BitmapDrawMode,
-        flip: BitmapFlip,
+        location: ScreenPoint,
+        mode: LCDBitmapDrawMode,
+        flip: LCDBitmapFlip,
         clip: LCDRect,
     ) -> Result<(), Error> {
         self.inner
             .borrow()
-            .draw(target, stencil, x, y, mode, flip, clip)
+            .draw(target, stencil, location, mode, flip, clip)
     }
 
-    pub fn transform(&self, rotation: f32, scale_x: f32, scale_y: f32) -> Result<Bitmap, Error> {
-        let inner = self.inner.borrow().transform(rotation, scale_x, scale_y)?;
+    pub fn draw_scaled(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        location: ScreenPoint,
+        scale: Vector2D<f32>,
+        mode: LCDBitmapDrawMode,
+        flip: LCDBitmapFlip,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        self.inner
+            .borrow()
+            .draw_scaled(target, stencil, location, scale, mode, clip)
+    }
+
+    pub fn tile(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        location: ScreenPoint,
+        size: ScreenSize,
+        mode: LCDBitmapDrawMode,
+        flip: LCDBitmapFlip,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        self.inner
+            .borrow()
+            .tile(target, stencil, location, size, mode, flip, clip)
+    }
+
+    pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
+        self.inner.borrow().clear(color)
+    }
+
+    pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
+        let inner = self.inner.borrow().transform(rotation, scale)?;
         Ok(Self {
             inner: Rc::new(RefCell::new(inner)),
         })
+    }
+
+    pub fn into_color(&self, bitmap: Bitmap, top_left: Point2D<i32>) -> Result<LCDColor, Error> {
+        self.inner.borrow().into_color(bitmap, top_left)
+    }
+
+    pub fn load(&self, path: &str) -> Result<(), Error> {
+        self.inner.borrow().load(path)
+    }
+
+    pub fn check_mask_collision(
+        &self,
+        my_location: ScreenPoint,
+        my_flip: LCDBitmapFlip,
+        other: Bitmap,
+        other_location: ScreenPoint,
+        other_flip: LCDBitmapFlip,
+        rect: ScreenRect,
+    ) -> Result<bool, Error> {
+        self.inner.borrow().check_mask_collision(
+            my_location,
+            my_flip,
+            other,
+            other_location,
+            other_flip,
+            rect,
+        )
     }
 }
 
@@ -182,71 +363,23 @@ impl Font {
         anyhow::ensure!(font != ptr::null_mut(), "Null pointer passed to Font::new");
         Ok(Self(font))
     }
-}
 
-pub enum BitmapDrawMode {
-    Copy,
-    WhiteTransparent,
-    BlackTransparent,
-    FillWhite,
-    FillBlack,
-    XOR,
-    NXOR,
-    Inverted,
-}
+    pub fn get_glyph(&self, c: u16) -> Result<(Bitmap, u32), Error> {
+        let graphics = Graphics::get();
+        let mut advance = 0;
+        let raw_bitmap = pd_func_caller!((*graphics.0).getFontGlyph, self.0, c, &mut advance)?;
+        Ok((Bitmap::new(raw_bitmap), advance))
+    }
 
-impl From<BitmapDrawMode> for LCDBitmapDrawMode {
-    fn from(draw_mode: BitmapDrawMode) -> Self {
-        let lcd_draw_mode = match draw_mode {
-            BitmapDrawMode::Copy => LCDBitmapDrawMode_kDrawModeCopy,
-            BitmapDrawMode::WhiteTransparent => LCDBitmapDrawMode_kDrawModeWhiteTransparent,
-            BitmapDrawMode::BlackTransparent => LCDBitmapDrawMode_kDrawModeBlackTransparent,
-            BitmapDrawMode::FillWhite => LCDBitmapDrawMode_kDrawModeFillWhite,
-            BitmapDrawMode::FillBlack => LCDBitmapDrawMode_kDrawModeFillBlack,
-            BitmapDrawMode::XOR => LCDBitmapDrawMode_kDrawModeXOR,
-            BitmapDrawMode::NXOR => LCDBitmapDrawMode_kDrawModeNXOR,
-            BitmapDrawMode::Inverted => LCDBitmapDrawMode_kDrawModeInverted,
-        };
-        lcd_draw_mode
+    pub fn get_kerning(&self, c1: u16, c2: u16) -> Result<i32, Error> {
+        let graphics = Graphics::get();
+        pd_func_caller!((*graphics.0).getFontKerning, self.0, c1, c2)
     }
 }
 
-#[derive(Debug)]
-pub enum BitmapFlip {
-    Unflipped,
-    FlippedX,
-    FlippedY,
-    FlippedXY,
-}
-
-impl From<BitmapFlip> for LCDBitmapFlip {
-    fn from(flip: BitmapFlip) -> Self {
-        let lcd_flip = match flip {
-            BitmapFlip::Unflipped => LCDBitmapFlip_kBitmapUnflipped,
-            BitmapFlip::FlippedX => LCDBitmapFlip_kBitmapFlippedX,
-            BitmapFlip::FlippedY => LCDBitmapFlip_kBitmapFlippedY,
-            BitmapFlip::FlippedXY => LCDBitmapFlip_kBitmapFlippedXY,
-        };
-        lcd_flip
-    }
-}
-
-pub enum SolidColor {
-    Black,
-    White,
-    Clear,
-    XOR,
-}
-
-impl From<SolidColor> for LCDSolidColor {
-    fn from(color: SolidColor) -> Self {
-        let solid_color: LCDSolidColor = match color {
-            SolidColor::Black => LCDSolidColor_kColorBlack,
-            SolidColor::White => LCDSolidColor_kColorWhite,
-            SolidColor::Clear => LCDSolidColor_kColorClear,
-            SolidColor::XOR => LCDSolidColor_kColorXOR,
-        };
-        solid_color
+impl Drop for Font {
+    fn drop(&mut self) {
+        log_to_console!("Leaking a font");
     }
 }
 
@@ -254,7 +387,6 @@ impl From<SolidColor> for LCDSolidColor {
 struct BitmapTableInner {
     raw_bitmap_table: *mut LCDBitmapTable,
     bitmaps: HashMap<usize, Bitmap>,
-    graphics: Graphics,
 }
 
 impl BitmapTableInner {
@@ -263,7 +395,7 @@ impl BitmapTableInner {
             Ok(bitmap.clone())
         } else {
             let raw_bitmap = pd_func_caller!(
-                (*self.graphics.0).getTableBitmap,
+                (*Graphics::get_ptr()).getTableBitmap,
                 self.raw_bitmap_table,
                 index as c_int
             )?;
@@ -273,16 +405,37 @@ impl BitmapTableInner {
                 index,
                 self.raw_bitmap_table
             );
-            let bitmap = Bitmap::new(raw_bitmap, &self.graphics);
+            let bitmap = Bitmap::new(raw_bitmap);
             self.bitmaps.insert(index, bitmap.clone());
             Ok(bitmap)
+        }
+    }
+
+    fn load(&mut self, path: &str) -> Result<(), Error> {
+        let c_path = CString::new(path).map_err(Error::msg)?;
+        let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
+        let graphics = Graphics::get();
+        pd_func_caller!(
+            (*graphics.0).loadIntoBitmapTable,
+            c_path.as_ptr(),
+            self.raw_bitmap_table,
+            &mut out_err
+        )?;
+        if out_err != ptr::null_mut() {
+            let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
+            Err(anyhow!(err_msg))
+        } else {
+            Ok(())
         }
     }
 }
 
 impl Drop for BitmapTableInner {
     fn drop(&mut self) {
-        pd_func_caller_log!((*self.graphics.0).freeBitmapTable, self.raw_bitmap_table);
+        pd_func_caller_log!(
+            (*Graphics::get_ptr()).freeBitmapTable,
+            self.raw_bitmap_table
+        );
     }
 }
 
@@ -294,17 +447,42 @@ pub struct BitmapTable {
 }
 
 impl BitmapTable {
+    pub fn new(raw_bitmap_table: *mut LCDBitmapTable) -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(BitmapTableInner {
+                raw_bitmap_table,
+                bitmaps: HashMap::new(),
+            })),
+        }
+    }
+
+    pub fn load(&self, path: &str) -> Result<(), Error> {
+        self.inner.borrow_mut().load(path)
+    }
+
     pub fn get_bitmap(&self, index: usize) -> Result<Bitmap, Error> {
         self.inner.borrow_mut().get_bitmap(index)
     }
 }
 
+static mut GRAPHICS: Graphics = Graphics(ptr::null_mut());
+
 #[derive(Clone, Debug)]
 pub struct Graphics(*mut crankstart_sys::playdate_graphics);
 
 impl Graphics {
-    pub fn new(graphics: *mut crankstart_sys::playdate_graphics) -> Self {
-        Self(graphics)
+    pub(crate) fn new(graphics: *mut crankstart_sys::playdate_graphics) {
+        unsafe {
+            GRAPHICS = Self(graphics);
+        }
+    }
+
+    pub fn get() -> Self {
+        unsafe { GRAPHICS.clone() }
+    }
+
+    pub fn get_ptr() -> *mut crankstart_sys::playdate_graphics {
+        Self::get().0
     }
 
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
@@ -327,31 +505,53 @@ impl Graphics {
         Ok(frame)
     }
 
-    pub fn set_background_color(&self, bg_color: SolidColor) -> Result<(), Error> {
-        pd_func_caller!((*self.0).setBackgroundColor, bg_color as usize)
+    pub fn get_debug_image(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!((*self.0).getDebugImage)?;
+        anyhow::ensure!(
+            raw_bitmap != ptr::null_mut(),
+            "Null pointer returned from getDebugImage"
+        );
+        Ok(Bitmap::new(raw_bitmap))
     }
 
-    pub fn mark_updated_rows(&self, x: i32, y: i32) -> Result<(), Error> {
-        pd_func_caller!((*self.0).markUpdatedRows, x, y)
+    pub fn get_framebuffer_bitmap(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!((*self.0).getFrameBufferBitmap)?;
+        anyhow::ensure!(
+            raw_bitmap != ptr::null_mut(),
+            "Null pointer returned from getFrameBufferBitmap"
+        );
+        Ok(Bitmap::new(raw_bitmap))
     }
 
-    pub fn set_draw_offset(&self, x: i32, y: i32) -> Result<(), Error> {
-        pd_func_caller!((*self.0).setDrawOffset, x, y)
+    pub fn set_background_color(&self, color: LCDColor) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setBackgroundColor, color.into())
     }
 
-    pub fn new_bitmap(
-        &self,
-        width: i32,
-        height: i32,
-        bg_color: SolidColor,
-    ) -> Result<Bitmap, Error> {
-        let raw_bitmap = pd_func_caller!((*self.0).newBitmap, width, height, bg_color as usize)?;
-        Ok(Bitmap {
-            inner: Rc::new(RefCell::new(BitmapInner {
-                raw_bitmap,
-                graphics: self.clone(),
-            })),
-        })
+    pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
+        let (start, end) = range.into_inner();
+        pd_func_caller!((*self.0).markUpdatedRows, start, end)
+    }
+
+    pub fn display(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).display)
+    }
+
+    pub fn set_draw_offset(&self, offset: ScreenVector) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setDrawOffset, offset.x, offset.y)
+    }
+
+    pub fn new_bitmap(&self, size: ScreenSize, bg_color: LCDColor) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*self.0).newBitmap,
+            size.width,
+            size.height,
+            bg_color.into()
+        )?;
+        anyhow::ensure!(
+            raw_bitmap != ptr::null_mut(),
+            "Null pointer returned from new_bitmap"
+        );
+        Ok(Bitmap::new(raw_bitmap))
     }
 
     pub fn load_bitmap(&self, path: &str) -> Result<Bitmap, Error> {
@@ -368,13 +568,19 @@ impl Graphics {
                 ))
             }
         } else {
-            Ok(Bitmap {
-                inner: Rc::new(RefCell::new(BitmapInner {
-                    raw_bitmap,
-                    graphics: self.clone(),
-                })),
-            })
+            Ok(Bitmap::new(raw_bitmap))
         }
+    }
+
+    pub fn new_bitmap_table(&self, count: usize, size: ScreenSize) -> Result<BitmapTable, Error> {
+        let raw_bitmap_table = pd_func_caller!(
+            (*self.0).newBitmapTable,
+            count as i32,
+            size.width,
+            size.height
+        )?;
+
+        Ok(BitmapTable::new(raw_bitmap_table))
     }
 
     pub fn load_bitmap_table(&self, path: &str) -> Result<BitmapTable, Error> {
@@ -392,45 +598,82 @@ impl Graphics {
                 ))
             }
         } else {
-            Ok(BitmapTable {
-                inner: Rc::new(RefCell::new(BitmapTableInner {
-                    raw_bitmap_table,
-                    bitmaps: HashMap::new(),
-                    graphics: self.clone(),
-                })),
-            })
+            Ok(BitmapTable::new(raw_bitmap_table))
         }
     }
 
-    pub fn clear(&self, color: SolidColor) -> Result<(), Error> {
-        let color: LCDSolidColor = color.into();
-        pd_func_caller!((*self.0).clear, color as usize)
+    pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
+        pd_func_caller!((*self.0).clear, color.into())
+    }
+
+    pub fn draw_line(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        p1: ScreenPoint,
+        p2: ScreenPoint,
+        width: i32,
+        color: LCDColor,
+        end_cap_style: LCDLineCapStyle,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).drawLine,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            p1.x,
+            p1.y,
+            p2.x,
+            p2.y,
+            width,
+            color.into(),
+            end_cap_style,
+            clip
+        )
     }
 
     pub fn fill_triangle(
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        x1: i32,
-        y1: i32,
-        x2: i32,
-        y2: i32,
-        x3: i32,
-        y3: i32,
-        color: SolidColor,
+        p1: ScreenPoint,
+        p2: ScreenPoint,
+        p3: ScreenPoint,
+        color: LCDColor,
         clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillTriangle,
             raw_bitmap(target),
             raw_bitmap(stencil),
-            x1,
-            y1,
-            x2,
-            y2,
-            x3,
-            y3,
-            color as usize,
+            p1.x,
+            p1.y,
+            p2.x,
+            p2.y,
+            p3.x,
+            p3.y,
+            color.into(),
+            clip
+        )
+    }
+
+    pub fn draw_rect(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        rect: ScreenRect,
+        color: LCDColor,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).drawRect,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+            color.into(),
             clip
         )
     }
@@ -439,22 +682,74 @@ impl Graphics {
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        color: SolidColor,
+        rect: ScreenRect,
+        color: LCDColor,
         clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillRect,
             raw_bitmap(target),
             raw_bitmap(stencil),
-            x,
-            y,
-            width,
-            height,
-            color as usize,
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+            color.into(),
+            clip
+        )
+    }
+
+    pub fn draw_ellipse(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        center: ScreenPoint,
+        size: ScreenSize,
+        line_width: i32,
+        start_angle: f32,
+        end_angle: f32,
+        color: LCDColor,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).drawEllipse,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            center.x,
+            center.y,
+            size.width,
+            size.height,
+            line_width,
+            start_angle,
+            end_angle,
+            color.into(),
+            clip
+        )
+    }
+
+    pub fn fill_ellipse(
+        &self,
+        target: OptionalBitmap,
+        stencil: OptionalBitmap,
+        center: ScreenPoint,
+        size: ScreenSize,
+        line_width: i32,
+        start_angle: f32,
+        end_angle: f32,
+        color: LCDColor,
+        clip: LCDRect,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).fillEllipse,
+            raw_bitmap(target),
+            raw_bitmap(stencil),
+            center.x,
+            center.y,
+            size.width,
+            size.height,
+            start_angle,
+            end_angle,
+            color.into(),
             clip
         )
     }
@@ -471,9 +766,8 @@ impl Graphics {
         target: OptionalBitmap,
         stencil: OptionalBitmap,
         text: &str,
-        x: i32,
-        y: i32,
-        mode: BitmapDrawMode,
+        position: ScreenPoint,
+        mode: LCDBitmapDrawMode,
         tracking: i32,
         clip: LCDRect,
     ) -> Result<i32, Error> {
@@ -485,9 +779,9 @@ impl Graphics {
             raw_bitmap(stencil),
             c_text.as_ptr() as *const core::ffi::c_void,
             text.len() as size_t,
-            PDStringEncoding_kUTF8Encoding,
-            x,
-            y,
+            PDStringEncoding::kUTF8Encoding,
+            position.x,
+            position.y,
             mode.into(),
             tracking,
             clip,
@@ -501,7 +795,7 @@ impl Graphics {
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
             text.len() as size_t,
-            PDStringEncoding_kUTF8Encoding,
+            PDStringEncoding::kUTF8Encoding,
             tracking,
         )
     }

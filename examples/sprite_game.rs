@@ -7,15 +7,17 @@ use {
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        graphics::{rect_make, Bitmap, BitmapData, BitmapDrawMode, BitmapFlip, LCDRect, PDRect},
+        graphics::{
+            rect_make, Bitmap, BitmapData, Graphics, LCDBitmapDrawMode, LCDBitmapFlip, LCDRect,
+            PDRect,
+        },
         log_to_console,
         sprite::{Sprite, SpriteCollider, SpriteManager},
+        system::{PDButtons, System},
         Game, Playdate,
     },
-    crankstart_sys::{
-        PDButtons_kButtonA, PDButtons_kButtonB, PDButtons_kButtonDown, PDButtons_kButtonLeft,
-        PDButtons_kButtonRight, PDButtons_kButtonUp, SpriteCollisionResponseType,
-    },
+    crankstart_sys::SpriteCollisionResponseType,
+    euclid::point2,
     randomize::PCG32,
 };
 
@@ -52,7 +54,10 @@ fn create_explosion(
 ) -> Result<(), Error> {
     let sprite_manager = SpriteManager::get_mut();
     let mut explosion = sprite_manager.new_sprite()?;
-    explosion.set_image(explosion_bitmaps[0].clone(), BitmapFlip::Unflipped)?;
+    explosion.set_image(
+        explosion_bitmaps[0].clone(),
+        LCDBitmapFlip::kBitmapUnflipped,
+    )?;
     explosion.move_to(x as f32, y as f32)?;
     explosion.set_tag(SpriteType::ExplosionBase as u8)?;
     explosion.set_z_index(2000)?;
@@ -93,19 +98,17 @@ impl BackgroundHandler {
         self.background_image.draw(
             None,
             None,
-            0,
-            self.y,
-            BitmapDrawMode::Copy,
-            BitmapFlip::Unflipped,
+            point2(0, self.y),
+            LCDBitmapDrawMode::kDrawModeCopy,
+            LCDBitmapFlip::kBitmapUnflipped,
             r,
         )?;
         self.background_image.draw(
             None,
             None,
-            0,
-            self.y - self.height,
-            BitmapDrawMode::Copy,
-            BitmapFlip::Unflipped,
+            point2(0, self.y - self.height),
+            LCDBitmapDrawMode::kDrawModeCopy,
+            LCDBitmapFlip::kBitmapUnflipped,
             r,
         )?;
         Ok(())
@@ -121,21 +124,21 @@ impl PlayerHandler {
         enemies: &mut Vec<Sprite>,
         explosions: &mut Vec<Sprite>,
         explosion_bitmaps: &Vec<Bitmap>,
-        playdate: &Playdate,
+        _playdate: &Playdate,
     ) -> Result<(), Error> {
-        let (current, _, _) = playdate.system().get_button_state()?;
+        let (current, _, _) = System::get().get_button_state()?;
 
         let mut dx = 0;
         let mut dy = 0;
 
-        if (current & PDButtons_kButtonUp) != 0 {
+        if (current & PDButtons::kButtonUp) == PDButtons::kButtonUp {
             dy = -4;
-        } else if (current & PDButtons_kButtonDown) != 0 {
+        } else if (current & PDButtons::kButtonDown) == PDButtons::kButtonDown {
             dy = 4;
         }
-        if (current & PDButtons_kButtonLeft) != 0 {
+        if (current & PDButtons::kButtonLeft) == PDButtons::kButtonLeft {
             dx = -4;
-        } else if (current & PDButtons_kButtonRight) != 0 {
+        } else if (current & PDButtons::kButtonRight) == PDButtons::kButtonRight {
             dx = 4;
         }
 
@@ -257,7 +260,7 @@ impl ExplosionHandler {
         } else {
             sprite.set_image(
                 explosion_bitmaps[frame_number].clone(),
-                BitmapFlip::Unflipped,
+                LCDBitmapFlip::kBitmapUnflipped,
             )?;
             sprite.set_tag(SpriteType::ExplosionBase as u8 + frame_number as u8)?;
         }
@@ -313,14 +316,13 @@ struct SpriteGame {
 }
 
 impl SpriteGame {
-    fn new(playdate: &mut Playdate) -> Result<Box<Self>, Error> {
-        playdate.display().set_refresh_rate(20.0)?;
+    fn new(_playdate: &mut Playdate) -> Result<Box<Self>, Error> {
+        let graphics = Graphics::get();
+        crankstart::display::Display::get().set_refresh_rate(20.0)?;
         // setup background
         let sprite_manager = SpriteManager::get_mut();
         let mut background = sprite_manager.new_sprite()?;
-        let background_image = playdate
-            .graphics()
-            .load_bitmap("sprite_game_images/background")?;
+        let background_image = graphics.load_bitmap("sprite_game_images/background")?;
         let background_image_data = background_image.get_data()?;
         let bounds = rect_make(0.0, 0.0, 400.0, 240.0);
         background.set_bounds(&bounds)?;
@@ -336,11 +338,9 @@ impl SpriteGame {
 
         // setup player
         let mut player = sprite_manager.new_sprite()?;
-        let player_image = playdate
-            .graphics()
-            .load_bitmap("sprite_game_images/player")?;
+        let player_image = graphics.load_bitmap("sprite_game_images/player")?;
         let player_image_data = player_image.get_data()?;
-        player.set_image(player_image, BitmapFlip::Unflipped)?;
+        player.set_image(player_image, LCDBitmapFlip::kBitmapUnflipped)?;
         let center_x: i32 = 200 - player_image_data.width / 2;
         let center_y: i32 = 180 - player_image_data.height / 2;
         let cr = rect_make(
@@ -355,20 +355,14 @@ impl SpriteGame {
 
         player.move_to(center_x as f32, center_y as f32)?;
 
-        let bullet_image = playdate
-            .graphics()
-            .load_bitmap("sprite_game_images/doubleBullet")?;
+        let bullet_image = graphics.load_bitmap("sprite_game_images/doubleBullet")?;
         let bullet_image_data = bullet_image.get_data()?;
 
-        let enemy_plane_image = playdate
-            .graphics()
-            .load_bitmap("sprite_game_images/plane1")?;
+        let enemy_plane_image = graphics.load_bitmap("sprite_game_images/plane1")?;
         let enemy_image_data = enemy_plane_image.get_data()?;
         let enemy_plane_handler = EnemyPlaneHandler { enemy_image_data };
 
-        let background_plane_image = playdate
-            .graphics()
-            .load_bitmap("sprite_game_images/plane2")?;
+        let background_plane_image = graphics.load_bitmap("sprite_game_images/plane2")?;
         let background_plane_image_data = background_plane_image.get_data()?;
         let background_plane_handler = BackgroundPlaneHandler {
             background_plane_image_data,
@@ -377,13 +371,9 @@ impl SpriteGame {
         let explosion_handler = ExplosionHandler {};
         let explosion_bitmaps: Vec<Bitmap> = (1..12)
             .flat_map(|index| {
-                playdate
-                    .graphics()
-                    .load_bitmap(&format!("sprite_game_images/explosion/{}", index))
+                graphics.load_bitmap(&format!("sprite_game_images/explosion/{}", index))
             })
             .collect();
-
-        log_to_console!("explosion_bitmaps = {:?}", explosion_bitmaps);
 
         let rng = PCG32::seed(1, 1);
         let mut sprite_game = Self {
@@ -426,7 +416,7 @@ impl SpriteGame {
         let y: i32 = player_bounds.y as i32;
 
         let mut bullet = sprite_manager.new_sprite()?;
-        bullet.set_image(self.bullet_image.clone(), BitmapFlip::Unflipped)?;
+        bullet.set_image(self.bullet_image.clone(), LCDBitmapFlip::kBitmapUnflipped)?;
         let cr = rect_make(
             0.0,
             0.0,
@@ -443,16 +433,18 @@ impl SpriteGame {
         Ok(())
     }
 
-    fn check_buttons(&mut self, playdate: &mut Playdate) -> Result<(), Error> {
-        let (_, pushed, _) = playdate.system().get_button_state()?;
-        if (pushed & PDButtons_kButtonA) != 0 || (pushed & PDButtons_kButtonB) != 0 {
+    fn check_buttons(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
+        let (_, pushed, _) = System::get().get_button_state()?;
+        if (pushed & PDButtons::kButtonA) == PDButtons::kButtonA
+            || (pushed & PDButtons::kButtonB) == PDButtons::kButtonB
+        {
             self.player_fire()?;
         }
         Ok(())
     }
 
-    fn check_crank(&mut self, playdate: &mut Playdate) -> Result<(), Error> {
-        let change = playdate.system().get_crank_change()? as i32;
+    fn check_crank(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
+        let change = System::get().get_crank_change()? as i32;
 
         if change > 1 {
             self.max_enemies += 1;
@@ -472,7 +464,10 @@ impl SpriteGame {
         let mut plane = sprite_manager.new_sprite()?;
         plane.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
         let plane_image_data = self.enemy_plane_image.get_data()?;
-        plane.set_image(self.enemy_plane_image.clone(), BitmapFlip::Unflipped)?;
+        plane.set_image(
+            self.enemy_plane_image.clone(),
+            LCDBitmapFlip::kBitmapUnflipped,
+        )?;
         let cr = rect_make(
             0.0,
             0.0,
@@ -505,7 +500,10 @@ impl SpriteGame {
         let sprite_manager = SpriteManager::get_mut();
         let mut plane = sprite_manager.new_sprite()?;
         let plane_image_data = self.background_plane_image.get_data()?;
-        plane.set_image(self.background_plane_image.clone(), BitmapFlip::Unflipped)?;
+        plane.set_image(
+            self.background_plane_image.clone(),
+            LCDBitmapFlip::kBitmapUnflipped,
+        )?;
         let x = (self.rng.next_u32() % 400) as i32 - plane_image_data.width / 2;
         let y = -plane_image_data.height;
         plane.move_to(x as f32, y as f32)?;

@@ -3,20 +3,26 @@ use {
     alloc::format,
     anyhow::Error,
     core::ptr,
-    crankstart_sys::{ctypes::c_void, size_t, PDButtons},
+    crankstart_sys::{ctypes::c_void, size_t},
     cstr_core::CString,
 };
 
+pub use crankstart_sys::PDButtons;
+
 static mut SYSTEM: System = System(ptr::null_mut());
 
+#[derive(Clone, Debug)]
 pub struct System(*mut crankstart_sys::playdate_sys);
 
 impl System {
-    pub fn new(system: *mut crankstart_sys::playdate_sys) -> Self {
+    pub(crate) fn new(system: *mut crankstart_sys::playdate_sys) {
         unsafe {
             SYSTEM = Self(system);
         }
-        Self(system)
+    }
+
+    pub fn get() -> Self {
+        unsafe { SYSTEM.clone() }
     }
 
     pub(crate) fn realloc(&self, ptr: *mut c_void, size: size_t) -> *mut c_void {
@@ -31,9 +37,9 @@ impl System {
     }
 
     pub fn get_button_state(&self) -> Result<(PDButtons, PDButtons, PDButtons), Error> {
-        let mut current: PDButtons = 0;
-        let mut pushed: PDButtons = 0;
-        let mut released: PDButtons = 0;
+        let mut current: PDButtons = PDButtons(0);
+        let mut pushed: PDButtons = PDButtons(0);
+        let mut released: PDButtons = PDButtons(0);
         pd_func_caller!(
             (*self.0).getButtonState,
             &mut current,

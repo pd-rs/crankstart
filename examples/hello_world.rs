@@ -7,52 +7,45 @@ use {
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        graphics::{BitmapDrawMode, Font, Graphics, SolidColor},
+        geometry::{ScreenPoint, ScreenVector},
+        graphics::{Font, Graphics, LCDBitmapDrawMode, LCDColor, LCDSolidColor},
         system::System,
         Game, Playdate,
     },
     crankstart_sys::{LCDRect, LCD_COLUMNS, LCD_ROWS},
+    euclid::{point2, vec2},
 };
 
 struct State {
-    x: i32,
-    y: i32,
-    dx: i32,
-    dy: i32,
-    graphics: Graphics,
-    system: System,
+    location: ScreenPoint,
+    velocity: ScreenVector,
     font: Font,
 }
 
 impl State {
-    pub fn new(playdate: &Playdate) -> Result<Box<Self>, Error> {
-        let system = playdate.system();
-        let graphics = playdate.graphics();
-        playdate.display().set_refresh_rate(20.0)?;
+    pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
+        let graphics = Graphics::get();
+        crankstart::display::Display::get().set_refresh_rate(20.0)?;
         let font = graphics.load_font("/System/Fonts/Asheville-Sans-14-Bold.pft")?;
         Ok(Box::new(Self {
-            graphics: graphics,
-            system: system,
             font: font,
-            x: INITIAL_X,
-            y: INITIAL_Y,
-            dx: 1,
-            dy: 2,
+            location: point2(INITIAL_X, INITIAL_Y),
+            velocity: vec2(1, 2),
         }))
     }
 }
 
 impl Game for State {
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
-        self.graphics.clear(SolidColor::White)?;
-        self.graphics.draw_text(
+        let graphics = Graphics::get();
+        graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
+        graphics.draw_text(
             &self.font,
             None,
             None,
             "Hello World Rust",
-            self.x,
-            self.y,
-            BitmapDrawMode::Copy,
+            self.location,
+            LCDBitmapDrawMode::kDrawModeCopy,
             0,
             LCDRect {
                 left: 0,
@@ -62,18 +55,17 @@ impl Game for State {
             },
         )?;
 
-        self.x += self.dx;
-        self.y += self.dy;
+        self.location += self.velocity;
 
-        if self.x < 0 || self.x > LCD_COLUMNS as i32 - TEXT_WIDTH {
-            self.dx = -self.dx;
+        if self.location.x < 0 || self.location.x > LCD_COLUMNS as i32 - TEXT_WIDTH {
+            self.velocity.x = -self.velocity.x;
         }
 
-        if self.y < 0 || self.y > LCD_ROWS as i32 - TEXT_HEIGHT {
-            self.dy = -self.dy;
+        if self.location.y < 0 || self.location.y > LCD_ROWS as i32 - TEXT_HEIGHT {
+            self.velocity.y = -self.velocity.y;
         }
 
-        self.system.draw_fps(0, 0)?;
+        System::get().draw_fps(0, 0)?;
 
         Ok(())
     }

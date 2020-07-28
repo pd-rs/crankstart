@@ -1,9 +1,10 @@
 use {
     crate::{log_to_console, pd_func_caller, pd_func_caller_log},
-    alloc::{format, string::String, vec::Vec},
+    alloc::{boxed::Box, format, string::String, vec::Vec},
     anyhow::{ensure, Error},
     core::ptr,
     crankstart_sys::{ctypes::c_void, size_t, FileOptions, PDButtons, SDFile},
+    cstr_core::CStr,
     cstr_core::CString,
 };
 
@@ -11,6 +12,17 @@ pub use crankstart_sys::FileStat;
 
 #[derive(Clone, Debug)]
 pub struct FileSystem(*mut crankstart_sys::playdate_file);
+
+extern "C" fn list_files_callback(
+    filename: *const crankstart_sys::ctypes::c_char,
+    userdata: *mut core::ffi::c_void,
+) {
+    unsafe {
+        let path = CStr::from_ptr(filename).to_string_lossy().into_owned();
+        let files_ptr: *mut Vec<String> = userdata as *mut Vec<String>;
+        (*files_ptr).push(path);
+    }
+}
 
 impl FileSystem {
     pub(crate) fn new(file: *mut crankstart_sys::playdate_file) {
@@ -23,10 +35,18 @@ impl FileSystem {
         unsafe { FILE_SYSTEM.clone() }
     }
 
-    pub fn open(&self, path: &str, options: FileOptions) -> Result<File, Error> {
+    pub fn listfiles(&self, path: &str) -> Result<Vec<String>, Error> {
+        let mut files: Box<Vec<String>> = Box::new(Vec::new());
+        let files_ptr: *mut Vec<String> = &mut *files;
         let c_path = CString::new(path).map_err(Error::msg)?;
-        let raw_file = pd_func_caller!((*self.0).open, c_path.as_ptr(), options)?;
-        Ok(File(raw_file))
+        let result = pd_func_caller!(
+            (*self.0).listfiles,
+            c_path.as_ptr(),
+            Some(list_files_callback),
+            files_ptr as *mut core::ffi::c_void,
+        )?;
+        ensure!(result >= 0, "Error: {} from listfiles", result);
+        Ok(*files)
     }
 
     pub fn stat(&self, path: &str) -> Result<FileStat, Error> {
@@ -35,6 +55,34 @@ impl FileSystem {
         let result = pd_func_caller!((*self.0).stat, c_path.as_ptr(), &mut file_stat)?;
         ensure!(result == 0, "Error: {} from stat", result);
         Ok(file_stat)
+    }
+
+    pub fn mkdir(&self, path: &str) -> Result<(), Error> {
+        let c_path = CString::new(path).map_err(Error::msg)?;
+        let result = pd_func_caller!((*self.0).mkdir, c_path.as_ptr())?;
+        ensure!(result == 0, "Error: {} from mkdir", result);
+        Ok(())
+    }
+
+    pub fn unlink(&self, path: &str, recursive: bool) -> Result<(), Error> {
+        let c_path = CString::new(path).map_err(Error::msg)?;
+        let result = pd_func_caller!((*self.0).unlink, c_path.as_ptr(), recursive as i32)?;
+        ensure!(result == 0, "Error: {} from unlink", result);
+        Ok(())
+    }
+
+    pub fn rename(&self, from_path: &str, to_path: &str) -> Result<(), Error> {
+        let c_from_path = CString::new(from_path).map_err(Error::msg)?;
+        let c_to_path = CString::new(to_path).map_err(Error::msg)?;
+        let result = pd_func_caller!((*self.0).rename, c_from_path.as_ptr(), c_to_path.as_ptr())?;
+        ensure!(result == 0, "Error: {} from rename", result);
+        Ok(())
+    }
+
+    pub fn open(&self, path: &str, options: FileOptions) -> Result<File, Error> {
+        let c_path = CString::new(path).map_err(Error::msg)?;
+        let raw_file = pd_func_caller!((*self.0).open, c_path.as_ptr(), options)?;
+        Ok(File(raw_file))
     }
 
     pub fn read_file_as_string(&self, path: &str) -> Result<String, Error> {
@@ -48,6 +96,14 @@ impl FileSystem {
 }
 
 static mut FILE_SYSTEM: FileSystem = FileSystem(ptr::null_mut());
+
+#[repr(i32)]
+#[derive(Debug, Clone, Copy)]
+pub enum Whence {
+    Set = crankstart_sys::SEEK_SET as i32,
+    Cur = crankstart_sys::SEEK_CUR as i32,
+    End = crankstart_sys::SEEK_END as i32,
+}
 
 #[derive(Debug)]
 pub struct File(*mut SDFile);
@@ -65,12 +121,49 @@ impl File {
         ensure!(result >= 0, "Error {} from read", result);
         Ok(result as usize)
     }
+
+    pub fn write(&self, buf: &[u8]) -> Result<usize, Error> {
+        let file_sys = FileSystem::get();
+        let sd_file = self.0;
+        let result = pd_func_caller!(
+            (*file_sys.0).write,
+            sd_file,
+            buf.as_ptr() as *mut core::ffi::c_void,
+            buf.len() as u32
+        )?;
+        ensure!(result >= 0, "Error {} from write", result);
+        Ok(result as usize)
+    }
+
+    pub fn flush(&self) -> Result<(), Error> {
+        let file_sys = FileSystem::get();
+        let sd_file = self.0;
+        let result = pd_func_caller!((*file_sys.0).flush, sd_file)?;
+        ensure!(result >= 0, "Error {} from flush", result);
+        Ok(())
+    }
+
+    pub fn tell(&self) -> Result<i32, Error> {
+        let file_sys = FileSystem::get();
+        let sd_file = self.0;
+        let result = pd_func_caller!((*file_sys.0).tell, sd_file)?;
+        ensure!(result >= 0, "Error {} from tell", result);
+        Ok(result)
+    }
+
+    pub fn seek(&self, pos: i32, whence: Whence) -> Result<(), Error> {
+        let file_sys = FileSystem::get();
+        let sd_file = self.0;
+        let result = pd_func_caller!((*file_sys.0).seek, sd_file, pos, whence as i32)?;
+        ensure!(result >= 0, "Error {} from write", result);
+        Ok(())
+    }
 }
 
 impl Drop for File {
     fn drop(&mut self) {
         let file_sys = FileSystem::get();
         let sd_file = self.0;
-        pd_func_caller_log!((*file_sys.0).close, sd_file,);
+        pd_func_caller_log!((*file_sys.0).close, sd_file);
     }
 }

@@ -84,10 +84,13 @@ where
 pub const LCD_COLUMNS: u32 = 400;
 pub const LCD_ROWS: u32 = 240;
 pub const LCD_ROWSIZE: u32 = 52;
+pub const SEEK_SET: u32 = 0;
+pub const SEEK_CUR: u32 = 1;
+pub const SEEK_END: u32 = 2;
 pub type __darwin_size_t = ctypes::c_ulong;
 pub type size_t = __darwin_size_t;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct PDRect {
     pub x: f32,
     pub y: f32,
@@ -138,7 +141,7 @@ fn bindgen_test_layout_PDRect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct LCDRect {
     pub left: ctypes::c_int,
     pub right: ctypes::c_int,
@@ -213,33 +216,49 @@ pub struct LCDBitmapTable {
 pub struct LCDFont {
     _unused: [u8; 0],
 }
-pub const LCDBitmapDrawMode_kDrawModeCopy: LCDBitmapDrawMode = 0;
-pub const LCDBitmapDrawMode_kDrawModeWhiteTransparent: LCDBitmapDrawMode = 1;
-pub const LCDBitmapDrawMode_kDrawModeBlackTransparent: LCDBitmapDrawMode = 2;
-pub const LCDBitmapDrawMode_kDrawModeFillWhite: LCDBitmapDrawMode = 3;
-pub const LCDBitmapDrawMode_kDrawModeFillBlack: LCDBitmapDrawMode = 4;
-pub const LCDBitmapDrawMode_kDrawModeXOR: LCDBitmapDrawMode = 5;
-pub const LCDBitmapDrawMode_kDrawModeNXOR: LCDBitmapDrawMode = 6;
-pub const LCDBitmapDrawMode_kDrawModeInverted: LCDBitmapDrawMode = 7;
-pub type LCDBitmapDrawMode = u32;
-pub const LCDBitmapFlip_kBitmapUnflipped: LCDBitmapFlip = 0;
-pub const LCDBitmapFlip_kBitmapFlippedX: LCDBitmapFlip = 1;
-pub const LCDBitmapFlip_kBitmapFlippedY: LCDBitmapFlip = 2;
-pub const LCDBitmapFlip_kBitmapFlippedXY: LCDBitmapFlip = 3;
-pub type LCDBitmapFlip = u32;
-pub const LCDSolidColor_kColorBlack: LCDSolidColor = 0;
-pub const LCDSolidColor_kColorWhite: LCDSolidColor = 1;
-pub const LCDSolidColor_kColorClear: LCDSolidColor = 2;
-pub const LCDSolidColor_kColorXOR: LCDSolidColor = 3;
-pub type LCDSolidColor = u32;
-pub const LCDLineCapStyle_kLineCapStyleButt: LCDLineCapStyle = 0;
-pub const LCDLineCapStyle_kLineCapStyleSquare: LCDLineCapStyle = 1;
-pub const LCDLineCapStyle_kLineCapStyleRound: LCDLineCapStyle = 2;
-pub type LCDLineCapStyle = u32;
-pub const PDStringEncoding_kASCIIEncoding: PDStringEncoding = 0;
-pub const PDStringEncoding_kUTF8Encoding: PDStringEncoding = 1;
-pub const PDStringEncoding_k16BitLEEncoding: PDStringEncoding = 2;
-pub type PDStringEncoding = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LCDBitmapDrawMode {
+    kDrawModeCopy = 0,
+    kDrawModeWhiteTransparent = 1,
+    kDrawModeBlackTransparent = 2,
+    kDrawModeFillWhite = 3,
+    kDrawModeFillBlack = 4,
+    kDrawModeXOR = 5,
+    kDrawModeNXOR = 6,
+    kDrawModeInverted = 7,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LCDBitmapFlip {
+    kBitmapUnflipped = 0,
+    kBitmapFlippedX = 1,
+    kBitmapFlippedY = 2,
+    kBitmapFlippedXY = 3,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LCDSolidColor {
+    kColorBlack = 0,
+    kColorWhite = 1,
+    kColorClear = 2,
+    kColorXOR = 3,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LCDLineCapStyle {
+    kLineCapStyleButt = 0,
+    kLineCapStyleSquare = 1,
+    kLineCapStyleRound = 2,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PDStringEncoding {
+    kASCIIEncoding = 0,
+    kUTF8Encoding = 1,
+    k16BitLEEncoding = 2,
+}
+pub type LCDPattern = [u8; 16usize];
 pub type LCDColor = usize;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -250,7 +269,7 @@ pub type LCDSpriteDrawFunction = ::core::option::Option<
     unsafe extern "C" fn(sprite: *mut LCDSprite, bounds: PDRect, frame: *mut u8, drawrect: LCDRect),
 >;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_graphics {
     pub getFrame: ::core::option::Option<unsafe extern "C" fn() -> *mut u8>,
     pub getDisplayFrame: ::core::option::Option<unsafe extern "C" fn() -> *mut u8>,
@@ -942,26 +961,72 @@ fn bindgen_test_layout_playdate_graphics() {
         )
     );
 }
-pub const PDButtons_kButtonLeft: PDButtons = 1;
-pub const PDButtons_kButtonRight: PDButtons = 2;
-pub const PDButtons_kButtonUp: PDButtons = 4;
-pub const PDButtons_kButtonDown: PDButtons = 8;
-pub const PDButtons_kButtonB: PDButtons = 16;
-pub const PDButtons_kButtonA: PDButtons = 32;
-pub type PDButtons = u32;
-pub const PDLanguage_kPDLanguageEnglish: PDLanguage = 0;
-pub const PDLanguage_kPDLanguageJapanese: PDLanguage = 1;
-pub const PDLanguage_kPDLanguageUnknown: PDLanguage = 2;
-pub type PDLanguage = u32;
-pub const PDPeripherals_kNone: PDPeripherals = 0;
-pub const PDPeripherals_kAccelerometer: PDPeripherals = 1;
-pub const PDPeripherals_kCrank: PDPeripherals = 2;
-pub const PDPeripherals_kAllPeripherals: PDPeripherals = 65535;
-pub type PDPeripherals = u32;
+impl PDButtons {
+    pub const kButtonLeft: PDButtons = PDButtons(1);
+}
+impl PDButtons {
+    pub const kButtonRight: PDButtons = PDButtons(2);
+}
+impl PDButtons {
+    pub const kButtonUp: PDButtons = PDButtons(4);
+}
+impl PDButtons {
+    pub const kButtonDown: PDButtons = PDButtons(8);
+}
+impl PDButtons {
+    pub const kButtonB: PDButtons = PDButtons(16);
+}
+impl PDButtons {
+    pub const kButtonA: PDButtons = PDButtons(32);
+}
+impl ::core::ops::BitOr<PDButtons> for PDButtons {
+    type Output = Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self {
+        PDButtons(self.0 | other.0)
+    }
+}
+impl ::core::ops::BitOrAssign for PDButtons {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: PDButtons) {
+        self.0 |= rhs.0;
+    }
+}
+impl ::core::ops::BitAnd<PDButtons> for PDButtons {
+    type Output = Self;
+    #[inline]
+    fn bitand(self, other: Self) -> Self {
+        PDButtons(self.0 & other.0)
+    }
+}
+impl ::core::ops::BitAndAssign for PDButtons {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: PDButtons) {
+        self.0 &= rhs.0;
+    }
+}
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PDButtons(pub u32);
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PDLanguage {
+    kPDLanguageEnglish = 0,
+    kPDLanguageJapanese = 1,
+    kPDLanguageUnknown = 2,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PDPeripherals {
+    kNone = 0,
+    kAccelerometer = 1,
+    kCrank = 2,
+    kAllPeripherals = 65535,
+}
 pub type PDCallbackFunction =
     ::core::option::Option<unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int>;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sys {
     pub realloc: ::core::option::Option<
         unsafe extern "C" fn(ptr: *mut ctypes::c_void, size: size_t) -> *mut ctypes::c_void,
@@ -1213,7 +1278,7 @@ pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
     ::core::option::Option<unsafe extern "C" fn(L: *mut lua_State) -> ctypes::c_int>;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct luaL_Reg {
     pub name: *const ctypes::c_char,
     pub func: lua_CFunction,
@@ -1263,10 +1328,16 @@ pub struct luaL_Val {
     pub type_: luaL_Val__bindgen_ty_1,
     pub v: luaL_Val__bindgen_ty_2,
 }
-pub const luaL_Val_kInt: luaL_Val__bindgen_ty_1 = 0;
-pub const luaL_Val_kFloat: luaL_Val__bindgen_ty_1 = 1;
-pub const luaL_Val_kStr: luaL_Val__bindgen_ty_1 = 2;
-pub type luaL_Val__bindgen_ty_1 = u32;
+pub const luaL_Val_kInt: luaL_Val__bindgen_ty_1 = luaL_Val__bindgen_ty_1::kInt;
+pub const luaL_Val_kFloat: luaL_Val__bindgen_ty_1 = luaL_Val__bindgen_ty_1::kFloat;
+pub const luaL_Val_kStr: luaL_Val__bindgen_ty_1 = luaL_Val__bindgen_ty_1::kStr;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum luaL_Val__bindgen_ty_1 {
+    kInt = 0,
+    kFloat = 1,
+    kStr = 2,
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union luaL_Val__bindgen_ty_2 {
@@ -1378,18 +1449,21 @@ impl Default for luaL_Val {
 pub struct LuaUDObject {
     _unused: [u8; 0],
 }
-pub const LuaType_kTypeNil: LuaType = 0;
-pub const LuaType_kTypeBool: LuaType = 1;
-pub const LuaType_kTypeInt: LuaType = 2;
-pub const LuaType_kTypeFloat: LuaType = 3;
-pub const LuaType_kTypeString: LuaType = 4;
-pub const LuaType_kTypeTable: LuaType = 5;
-pub const LuaType_kTypeFunction: LuaType = 6;
-pub const LuaType_kTypeThread: LuaType = 7;
-pub const LuaType_kTypeObject: LuaType = 8;
-pub type LuaType = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LuaType {
+    kTypeNil = 0,
+    kTypeBool = 1,
+    kTypeInt = 2,
+    kTypeFloat = 3,
+    kTypeString = 4,
+    kTypeTable = 5,
+    kTypeFunction = 6,
+    kTypeThread = 7,
+    kTypeObject = 8,
+}
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_lua {
     pub addFunction: ::core::option::Option<
         unsafe extern "C" fn(
@@ -1777,15 +1851,18 @@ fn bindgen_test_layout_playdate_lua() {
         )
     );
 }
-pub const json_value_type_kJSONNull: json_value_type = 0;
-pub const json_value_type_kJSONTrue: json_value_type = 1;
-pub const json_value_type_kJSONFalse: json_value_type = 2;
-pub const json_value_type_kJSONInteger: json_value_type = 3;
-pub const json_value_type_kJSONFloat: json_value_type = 4;
-pub const json_value_type_kJSONString: json_value_type = 5;
-pub const json_value_type_kJSONArray: json_value_type = 6;
-pub const json_value_type_kJSONTable: json_value_type = 7;
-pub type json_value_type = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum json_value_type {
+    kJSONNull = 0,
+    kJSONTrue = 1,
+    kJSONFalse = 2,
+    kJSONInteger = 3,
+    kJSONFloat = 4,
+    kJSONString = 5,
+    kJSONArray = 6,
+    kJSONTable = 7,
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct json_value {
@@ -1919,7 +1996,7 @@ impl Default for json_value {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct json_decoder {
     pub decodeError: ::core::option::Option<
         unsafe extern "C" fn(
@@ -2082,7 +2159,7 @@ impl Default for json_decoder {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct json_reader {
     pub read: ::core::option::Option<
         unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int,
@@ -2135,7 +2212,7 @@ pub type writeFunc = ::core::option::Option<
     ),
 >;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct json_encoder {
     pub writeStringFunc: writeFunc,
     pub userdata: *mut ctypes::c_void,
@@ -2400,7 +2477,7 @@ impl json_encoder {
     }
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_json {
     pub decode: ::core::option::Option<
         unsafe extern "C" fn(functions: json_decoder, reader: json_reader) -> ctypes::c_int,
@@ -2506,7 +2583,7 @@ impl ::core::ops::BitAndAssign for FileOptions {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FileOptions(pub u32);
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct FileStat {
     pub isdir: ctypes::c_int,
     pub size: ctypes::c_uint,
@@ -2611,7 +2688,7 @@ fn bindgen_test_layout_FileStat() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_file {
     pub listfiles: ::core::option::Option<
         unsafe extern "C" fn(
@@ -2809,7 +2886,7 @@ pub enum SpriteCollisionResponseType {
     kCollisionTypeBounce = 3,
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct CollisionPoint {
     pub x: f32,
     pub y: f32,
@@ -2848,7 +2925,7 @@ fn bindgen_test_layout_CollisionPoint() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct CollisionVector {
     pub x: ctypes::c_int,
     pub y: ctypes::c_int,
@@ -2887,7 +2964,7 @@ fn bindgen_test_layout_CollisionVector() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct SpriteCollisionInfo {
     pub sprite: *mut LCDSprite,
     pub other: *mut LCDSprite,
@@ -3021,7 +3098,7 @@ impl Default for SpriteCollisionInfo {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct SpriteQueryInfo {
     pub sprite: *mut LCDSprite,
     pub ti1: f32,
@@ -3106,7 +3183,7 @@ pub type LCDSpriteCollisionFilterProc = ::core::option::Option<
     ) -> SpriteCollisionResponseType,
 >;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sprite {
     pub newSprite: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDSprite>,
     pub freeSprite: ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite)>,
@@ -3895,15 +3972,18 @@ pub struct SoundSource {
     _unused: [u8; 0],
 }
 pub type sndCallbackProc = ::core::option::Option<unsafe extern "C" fn(c: *mut SoundSource)>;
-pub const SoundFormat_kSound8bitMono: SoundFormat = 0;
-pub const SoundFormat_kSound8bitStereo: SoundFormat = 1;
-pub const SoundFormat_kSound16bitMono: SoundFormat = 2;
-pub const SoundFormat_kSound16bitStereo: SoundFormat = 3;
-pub const SoundFormat_kSoundADPCMMono: SoundFormat = 4;
-pub const SoundFormat_kSoundADPCMStereo: SoundFormat = 5;
-pub type SoundFormat = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SoundFormat {
+    kSound8bitMono = 0,
+    kSound8bitStereo = 1,
+    kSound16bitMono = 2,
+    kSound16bitStereo = 3,
+    kSoundADPCMMono = 4,
+    kSoundADPCMStereo = 5,
+}
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_fileplayer {
     pub newPlayer:
         ::core::option::Option<unsafe extern "C" fn(bufferSize: ctypes::c_int) -> *mut FilePlayer>,
@@ -4215,7 +4295,7 @@ fn bindgen_test_layout_playdate_sound_fileplayer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_sample {
     pub newSampleBuffer:
         ::core::option::Option<unsafe extern "C" fn(byteCount: ctypes::c_int) -> *mut AudioSample>,
@@ -4343,7 +4423,7 @@ fn bindgen_test_layout_playdate_sound_sample() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_sampleplayer {
     pub newPlayer: ::core::option::Option<unsafe extern "C" fn() -> *mut SamplePlayer>,
     pub freePlayer: ::core::option::Option<unsafe extern "C" fn(player: *mut SamplePlayer)>,
@@ -4606,7 +4686,7 @@ pub type AudioInputFunction = ::core::option::Option<
     ) -> ctypes::c_int,
 >;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_channel {}
 #[test]
 fn bindgen_test_layout_playdate_sound_channel() {
@@ -4622,7 +4702,7 @@ fn bindgen_test_layout_playdate_sound_channel() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_synth {}
 #[test]
 fn bindgen_test_layout_playdate_sound_synth() {
@@ -4638,7 +4718,7 @@ fn bindgen_test_layout_playdate_sound_synth() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_sequencer {}
 #[test]
 fn bindgen_test_layout_playdate_sound_sequencer() {
@@ -4654,7 +4734,7 @@ fn bindgen_test_layout_playdate_sound_sequencer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_effect {}
 #[test]
 fn bindgen_test_layout_playdate_sound_effect() {
@@ -4670,7 +4750,7 @@ fn bindgen_test_layout_playdate_sound_effect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_signal {}
 #[test]
 fn bindgen_test_layout_playdate_sound_signal() {
@@ -4686,7 +4766,7 @@ fn bindgen_test_layout_playdate_sound_signal() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound {
     pub start: ::core::option::Option<unsafe extern "C" fn()>,
     pub stop: ::core::option::Option<unsafe extern "C" fn()>,
@@ -4848,7 +4928,7 @@ impl Default for playdate_sound {
     }
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_display {
     pub getWidth: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
     pub getHeight: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
@@ -4957,7 +5037,7 @@ fn bindgen_test_layout_playdate_display() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PlaydateAPI {
     pub system: *mut playdate_sys,
     pub file: *mut playdate_file,
@@ -5066,16 +5146,19 @@ impl Default for PlaydateAPI {
         unsafe { ::core::mem::zeroed() }
     }
 }
-pub const PDSystemEvent_kEventInit: PDSystemEvent = 0;
-pub const PDSystemEvent_kEventInitLua: PDSystemEvent = 1;
-pub const PDSystemEvent_kEventLock: PDSystemEvent = 2;
-pub const PDSystemEvent_kEventUnlock: PDSystemEvent = 3;
-pub const PDSystemEvent_kEventPause: PDSystemEvent = 4;
-pub const PDSystemEvent_kEventResume: PDSystemEvent = 5;
-pub const PDSystemEvent_kEventTerminate: PDSystemEvent = 6;
-pub const PDSystemEvent_kEventKeyPressed: PDSystemEvent = 7;
-pub const PDSystemEvent_kEventKeyReleased: PDSystemEvent = 8;
-pub type PDSystemEvent = u32;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PDSystemEvent {
+    kEventInit = 0,
+    kEventInitLua = 1,
+    kEventLock = 2,
+    kEventUnlock = 3,
+    kEventPause = 4,
+    kEventResume = 5,
+    kEventTerminate = 6,
+    kEventKeyPressed = 7,
+    kEventKeyReleased = 8,
+}
 pub type PDEventHandler = ::core::option::Option<
     unsafe extern "C" fn(
         playdate: *mut PlaydateAPI,

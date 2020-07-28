@@ -5,8 +5,12 @@ extern crate alloc;
 use {
     alloc::boxed::Box,
     anyhow::Error,
-    crankstart::{crankstart_game, graphics::Graphics, system::System, Game, Playdate},
-    crankstart_sys::{PDButtons_kButtonA, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE},
+    crankstart::{
+        crankstart_game,
+        graphics::{Graphics, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE},
+        system::{PDButtons, System},
+        Game, Playdate,
+    },
     randomize::PCG32,
 };
 
@@ -80,8 +84,6 @@ fn randomize(graphics: &Graphics, rng: &mut PCG32) -> Result<(), Error> {
 }
 
 struct Life {
-    graphics: Graphics,
-    system: System,
     rng: PCG32,
     started: bool,
 }
@@ -90,11 +92,9 @@ const LAST_ROW_INDEX: usize = ((LCD_ROWS - 1) * LCD_ROWSIZE) as usize;
 const LAST_ROW_LIMIT: usize = LAST_ROW_INDEX + LCD_ROWSIZE as usize;
 
 impl Life {
-    pub fn new(playdate: &Playdate) -> Result<Box<Self>, Error> {
+    pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
         let rng0 = PCG32::seed(1, 1);
         Ok(Box::new(Self {
-            graphics: playdate.graphics(),
-            system: playdate.system(),
             rng: rng0,
             started: false,
         }))
@@ -103,20 +103,21 @@ impl Life {
 
 impl Game for Life {
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
+        let graphics = Graphics::get();
         if !self.started {
-            randomize(&self.graphics, &mut self.rng)?;
+            randomize(&graphics, &mut self.rng)?;
             self.started = true;
         }
 
-        let (_, pushed, _) = self.system.get_button_state()?;
+        let (_, pushed, _) = System::get().get_button_state()?;
 
-        if (pushed & PDButtons_kButtonA) != 0 {
-            randomize(&self.graphics, &mut self.rng)?;
+        if (pushed & PDButtons::kButtonA) == PDButtons::kButtonA {
+            randomize(&graphics, &mut self.rng)?;
         }
 
-        let frame = self.graphics.get_frame()?;
+        let frame = graphics.get_frame()?;
 
-        let last_frame = self.graphics.get_display_frame()?;
+        let last_frame = graphics.get_display_frame()?;
         let mut last_row = &last_frame[LAST_ROW_INDEX..LAST_ROW_LIMIT];
         let mut row = &last_frame[0..LCD_ROWSIZE as usize];
         let mut next_row = &last_frame[LCD_ROWSIZE as usize..(LCD_ROWSIZE * 2) as usize];
@@ -134,7 +135,7 @@ impl Game for Life {
             next_row = &last_frame[index..limit];
         }
 
-        self.graphics.mark_updated_rows(-1, -1)?;
+        graphics.mark_updated_rows(0..=(LCD_ROWS as i32) - 1)?;
 
         Ok(())
     }

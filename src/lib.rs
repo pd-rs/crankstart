@@ -6,6 +6,7 @@ extern crate alloc;
 
 pub mod display;
 pub mod file;
+pub mod geometry;
 pub mod graphics;
 pub mod sprite;
 pub mod system;
@@ -36,29 +37,17 @@ impl Playdate {
         sprite_update: SpriteUpdateFunction,
         sprite_draw: SpriteDrawFunction,
     ) -> Self {
-        let playdate_sprite = unsafe {
-            A.system = Some(System::new((*playdate).system));
-            (*playdate).sprite
-        };
+        let system = unsafe { (*playdate).system };
+        System::new(system);
+        let playdate_sprite = unsafe { (*playdate).sprite };
         SpriteManager::new(playdate_sprite, sprite_update, sprite_draw);
         let file = unsafe { (*playdate).file };
         FileSystem::new(file);
+        let graphics = unsafe { (*playdate).graphics };
+        Graphics::new(graphics);
+        let display = unsafe { (*playdate).display };
+        Display::new(display);
         Self { playdate }
-    }
-
-    pub fn graphics(&self) -> Graphics {
-        let graphics = unsafe { (*self.playdate).graphics };
-        Graphics::new(graphics)
-    }
-
-    pub fn display(&self) -> Display {
-        let display = unsafe { (*self.playdate).display };
-        Display::new(display)
-    }
-
-    pub fn system(&self) -> System {
-        let system = unsafe { (*self.playdate).system };
-        System::new(system)
     }
 }
 
@@ -156,7 +145,7 @@ impl<T: 'static + Game> GameRunner<T> {
                 _ => (),
             }
             if game.draw_fps() {
-                match self.playdate.system().draw_fps(0, 0) {
+                match System::get().draw_fps(0, 0) {
                     Err(err) => log_to_console!("Error from system().draw_fps: {}", err),
                     _ => (),
                 }
@@ -221,8 +210,7 @@ macro_rules! crankstart_game {
                     GameRunner, Playdate,
                 },
                 crankstart_sys::{
-                    LCDRect, LCDSprite, PDSystemEvent, PDSystemEvent_kEventInit, PlaydateAPI,
-                    SpriteCollisionResponseType,
+                    LCDRect, LCDSprite, PDSystemEvent, PlaydateAPI, SpriteCollisionResponseType,
                 },
             };
 
@@ -257,10 +245,9 @@ macro_rules! crankstart_game {
                 event: PDSystemEvent,
                 _arg: u32,
             ) -> crankstart_sys::ctypes::c_int {
-                if event == PDSystemEvent_kEventInit {
+                if event == PDSystemEvent::kEventInit {
                     let mut playdate = Playdate::new(playdate, sprite_update, sprite_draw);
-                    playdate
-                        .system()
+                    System::get()
                         .set_update_callback(Some(update))
                         .unwrap_or_else(|err| {
                             log_to_console!("Got error while setting update callback: {}", err);
@@ -331,15 +318,13 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
 
 use core::alloc::{GlobalAlloc, Layout};
 
-pub(crate) struct PlaydateAllocator {
-    system: Option<System>,
-}
+pub(crate) struct PlaydateAllocator;
 
 unsafe impl Sync for PlaydateAllocator {}
 
 unsafe impl GlobalAlloc for PlaydateAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let system = self.system.as_ref().expect("system");
+        let system = System::get();
         system.realloc(
             core::ptr::null_mut(),
             layout.size() as crankstart_sys::ctypes::realloc_size,
@@ -347,12 +332,12 @@ unsafe impl GlobalAlloc for PlaydateAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
-        let system = self.system.as_ref().expect("system");
+        let system = System::get();
         system.realloc(ptr as *mut core::ffi::c_void, 0);
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
-        self.system.as_ref().expect("playdate").realloc(
+        System::get().realloc(
             ptr as *mut core::ffi::c_void,
             new_size as crankstart_sys::ctypes::realloc_size,
         ) as *mut u8
@@ -360,7 +345,7 @@ unsafe impl GlobalAlloc for PlaydateAllocator {
 }
 
 #[global_allocator]
-pub(crate) static mut A: PlaydateAllocator = PlaydateAllocator { system: None };
+pub(crate) static mut A: PlaydateAllocator = PlaydateAllocator;
 
 // define what happens in an Out Of Memory (OOM) condition
 #[alloc_error_handler]

@@ -2,7 +2,7 @@ extern crate alloc;
 
 use {
     crate::{
-        graphics::{Bitmap, BitmapFlip, PDRect},
+        graphics::{Bitmap, LCDBitmapFlip, PDRect},
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
         Playdate,
@@ -107,13 +107,7 @@ impl<'a> Iterator for CollisionInfoIter<'a> {
 
 impl Drop for Collisions {
     fn drop(&mut self) {
-        unsafe {
-            if let Some(system) = crate::A.system.as_ref() {
-                system.realloc(self.0 as *mut core::ffi::c_void, 0);
-            } else {
-                log_to_console!("failed to access allocator in Drop for CollisionInfo");
-            }
-        }
+        System::get().realloc(self.0 as *mut core::ffi::c_void, 0);
     }
 }
 
@@ -219,7 +213,7 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).setZIndex, self.raw_sprite, z_index)
     }
 
-    pub fn set_image(&mut self, bitmap: Bitmap, flip: BitmapFlip) -> Result<(), Error> {
+    pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
         pd_func_caller!(
             (*self.playdate_sprite).setImage,
             self.raw_sprite,
@@ -360,7 +354,7 @@ impl Sprite {
             .set_z_index(z_index)
     }
 
-    pub fn set_image(&mut self, bitmap: Bitmap, flip: BitmapFlip) -> Result<(), Error> {
+    pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
@@ -435,7 +429,7 @@ pub struct SpriteManager {
 }
 
 impl SpriteManager {
-    pub fn new(
+    pub(crate) fn new(
         playdate_sprite: *mut playdate_sprite,
         update: SpriteUpdateFunction,
         draw: SpriteDrawFunction,
