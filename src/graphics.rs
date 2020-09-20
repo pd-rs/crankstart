@@ -523,7 +523,7 @@ impl Graphics {
         Ok(Bitmap::new(raw_bitmap))
     }
 
-    pub fn set_background_color(&self, color: LCDColor) -> Result<(), Error> {
+    pub fn set_background_color(&self, color: LCDSolidColor) -> Result<(), Error> {
         pd_func_caller!((*self.0).setBackgroundColor, color.into())
     }
 

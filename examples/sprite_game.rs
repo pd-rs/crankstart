@@ -47,8 +47,8 @@ fn remove_sprite_from_list(sprites: &mut Vec<Sprite>, target: &Sprite) {
 }
 
 fn create_explosion(
-    x: i32,
-    y: i32,
+    x: f32,
+    y: f32,
     explosions: &mut Vec<Sprite>,
     explosion_bitmaps: &Vec<Bitmap>,
 ) -> Result<(), Error> {
@@ -58,7 +58,7 @@ fn create_explosion(
         explosion_bitmaps[0].clone(),
         LCDBitmapFlip::kBitmapUnflipped,
     )?;
-    explosion.move_to(x as f32, y as f32)?;
+    explosion.move_to(x, y)?;
     explosion.set_tag(SpriteType::ExplosionBase as u8)?;
     explosion.set_z_index(2000)?;
     sprite_manager.add_sprite(&explosion)?;
@@ -128,18 +128,18 @@ impl PlayerHandler {
     ) -> Result<(), Error> {
         let (current, _, _) = System::get().get_button_state()?;
 
-        let mut dx = 0;
-        let mut dy = 0;
+        let mut dx = 0.0;
+        let mut dy = 0.0;
 
         if (current & PDButtons::kButtonUp) == PDButtons::kButtonUp {
-            dy = -4;
+            dy = -4.0;
         } else if (current & PDButtons::kButtonDown) == PDButtons::kButtonDown {
-            dy = 4;
+            dy = 4.0;
         }
         if (current & PDButtons::kButtonLeft) == PDButtons::kButtonLeft {
-            dx = -4;
+            dx = -4.0;
         } else if (current & PDButtons::kButtonRight) == PDButtons::kButtonRight {
-            dx = 4;
+            dx = 4.0;
         }
 
         let (mut x, mut y) = sprite.get_position()?;
@@ -147,7 +147,7 @@ impl PlayerHandler {
         x += dx;
         y += dy;
 
-        let (_, _, collisions) = sprite.move_with_collisions(x as f32, y as f32)?;
+        let (_, _, collisions) = sprite.move_with_collisions(x, y)?;
 
         for collision in collisions.iter() {
             let tag = collision.other.get_tag()?;
@@ -182,11 +182,11 @@ impl BulletHandler {
         }
 
         let (x, y) = sprite.get_position()?;
-        let new_y = y - 20;
-        if new_y < -self.bullet_image_data.height {
+        let new_y = y - 20.0;
+        if new_y < -self.bullet_image_data.height as f32 {
             remove_bullet(bullets, sprite);
         } else {
-            let (_, _, collisions) = sprite.move_with_collisions(x as f32, new_y as f32)?;
+            let (_, _, collisions) = sprite.move_with_collisions(x, new_y)?;
             for collision in collisions.iter() {
                 let tag = collision.other.get_tag()?;
                 if tag == SpriteType::EnemyPlane as u8 {
@@ -206,15 +206,15 @@ struct EnemyPlaneHandler {
 impl EnemyPlaneHandler {
     fn update(&mut self, enemies: &mut Vec<Sprite>, sprite: &mut Sprite) -> Result<(), Error> {
         let (x, y) = sprite.get_position()?;
-        let new_y = y + 4;
-        if new_y > 400 + self.enemy_image_data.height {
+        let new_y = y + 4.0;
+        if new_y > 400.0 + self.enemy_image_data.height as f32 {
             if let Some(pos) = enemies.iter().position(|enemy| *enemy == *sprite) {
                 enemies.remove(pos);
             } else {
                 log_to_console!("can't find enemy to remove");
             }
         } else {
-            sprite.move_to(x as f32, new_y as f32)?;
+            sprite.move_to(x, new_y)?;
         }
         Ok(())
     }
@@ -231,15 +231,15 @@ impl BackgroundPlaneHandler {
         sprite: &mut Sprite,
     ) -> Result<(), Error> {
         let (x, y) = sprite.get_position()?;
-        let new_y = y + 2;
-        if new_y > 400 + self.background_plane_image_data.height {
+        let new_y = y + 2.0;
+        if new_y > 400.0 + self.background_plane_image_data.height as f32 {
             if let Some(pos) = background_planes.iter().position(|p| *p == *sprite) {
                 background_planes.remove(pos);
             } else {
                 log_to_console!("can't find enemy to remove");
             }
         } else {
-            sprite.move_to(x as f32, new_y as f32)?;
+            sprite.move_to(x, new_y)?;
         }
         Ok(())
     }
@@ -341,19 +341,20 @@ impl SpriteGame {
         let player_image = graphics.load_bitmap("sprite_game_images/player")?;
         let player_image_data = player_image.get_data()?;
         player.set_image(player_image, LCDBitmapFlip::kBitmapUnflipped)?;
-        let center_x: i32 = 200 - player_image_data.width / 2;
-        let center_y: i32 = 180 - player_image_data.height / 2;
+        let center_x: f32 = 200.0 - player_image_data.width as f32 / 2.0;
+        let center_y: f32 = 180.0 - player_image_data.height as f32 / 2.0;
         let cr = rect_make(
             5.0,
             5.0,
             player_image_data.width as f32 - 10.0,
             player_image_data.height as f32 - 10.0,
         );
+
         player.set_collide_rect(&cr)?;
         player.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
         player.set_tag(SpriteType::Player as u8)?;
 
-        player.move_to(center_x as f32, center_y as f32)?;
+        player.move_to(center_x, center_y)?;
 
         let bullet_image = graphics.load_bitmap("sprite_game_images/doubleBullet")?;
         let bullet_image_data = bullet_image.get_data()?;
@@ -411,9 +412,8 @@ impl SpriteGame {
         let sprite_manager = SpriteManager::get_mut();
         let player_bounds = self.player.get_bounds()?;
         let bullet_image_data = self.bullet_image.get_data()?;
-        let x: i32 =
-            player_bounds.x as i32 + player_bounds.width as i32 / 2 - bullet_image_data.width / 2;
-        let y: i32 = player_bounds.y as i32;
+        let x = player_bounds.x + player_bounds.width / 2.0 - bullet_image_data.width as f32 / 2.0;
+        let y = player_bounds.y;
 
         let mut bullet = sprite_manager.new_sprite()?;
         bullet.set_image(self.bullet_image.clone(), LCDBitmapFlip::kBitmapUnflipped)?;
@@ -425,7 +425,7 @@ impl SpriteGame {
         );
         bullet.set_collide_rect(&cr)?;
         bullet.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
-        bullet.move_to(x as f32, y as f32)?;
+        bullet.move_to(x, y)?;
         bullet.set_z_index(999)?;
         sprite_manager.add_sprite(&bullet)?;
         bullet.set_tag(SpriteType::PlayerBullet as u8)?;
@@ -475,10 +475,10 @@ impl SpriteGame {
             plane_image_data.height as f32,
         );
         plane.set_collide_rect(&cr)?;
-        let x = (self.rng.next_u32() % 400) as i32 - plane_image_data.width / 2;
-        let y = -((self.rng.next_u32() % 30) as i32) - plane_image_data.height;
+        let x = (self.rng.next_u32() % 400) as f32 - plane_image_data.width as f32 / 2.0;
+        let y = -((self.rng.next_u32() % 30) as f32) - plane_image_data.height as f32;
 
-        plane.move_to(x as f32, y as f32)?;
+        plane.move_to(x, y)?;
         plane.set_z_index(500)?;
         plane.set_tag(SpriteType::EnemyPlane as u8)?;
         sprite_manager.add_sprite(&plane)?;
@@ -504,9 +504,9 @@ impl SpriteGame {
             self.background_plane_image.clone(),
             LCDBitmapFlip::kBitmapUnflipped,
         )?;
-        let x = (self.rng.next_u32() % 400) as i32 - plane_image_data.width / 2;
-        let y = -plane_image_data.height;
-        plane.move_to(x as f32, y as f32)?;
+        let x = (self.rng.next_u32() % 400) as f32 - plane_image_data.width as f32 / 2.0;
+        let y = -plane_image_data.height as f32;
+        plane.move_to(x, y)?;
         plane.set_tag(SpriteType::BackgroundPlane as u8)?;
         plane.set_z_index(100)?;
         sprite_manager.add_sprite(&plane)?;

@@ -240,9 +240,9 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).moveTo, self.raw_sprite, x, y)
     }
 
-    pub fn get_position(&self) -> Result<(i32, i32), Error> {
-        let mut x = 0;
-        let mut y = 0;
+    pub fn get_position(&self) -> Result<(f32, f32), Error> {
+        let mut x = 0.0;
+        let mut y = 0.0;
         pd_func_caller!(
             (*self.playdate_sprite).getPosition,
             self.raw_sprite,
@@ -386,7 +386,7 @@ impl Sprite {
             .move_to(x, y)
     }
 
-    pub fn get_position(&self) -> Result<(i32, i32), Error> {
+    pub fn get_position(&self) -> Result<(f32, f32), Error> {
         self.inner.try_borrow().map_err(Error::msg)?.get_position()
     }
 

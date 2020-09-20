@@ -279,7 +279,7 @@ pub struct playdate_graphics {
     pub getDisplayFrame: ::core::option::Option<unsafe extern "C" fn() -> *mut u8>,
     pub getDebugImage: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDBitmap>,
     pub getFrameBufferBitmap: ::core::option::Option<unsafe extern "C" fn() -> *mut LCDBitmap>,
-    pub setBackgroundColor: ::core::option::Option<unsafe extern "C" fn(color: LCDColor)>,
+    pub setBackgroundColor: ::core::option::Option<unsafe extern "C" fn(color: LCDSolidColor)>,
     pub markUpdatedRows:
         ::core::option::Option<unsafe extern "C" fn(start: ctypes::c_int, end: ctypes::c_int)>,
     pub display: ::core::option::Option<unsafe extern "C" fn()>,
@@ -965,6 +965,11 @@ fn bindgen_test_layout_playdate_graphics() {
         )
     );
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PDMenuItem {
+    _unused: [u8; 0],
+}
 impl PDButtons {
     pub const kButtonLeft: PDButtons = PDButtons(1);
 }
@@ -1029,8 +1034,10 @@ pub enum PDPeripherals {
 }
 pub type PDCallbackFunction =
     ::core::option::Option<unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int>;
+pub type PDMenuItemCallbackFunction =
+    ::core::option::Option<unsafe extern "C" fn(userdata: *mut ctypes::c_void)>;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sys {
     pub realloc: ::core::option::Option<
         unsafe extern "C" fn(ptr: *mut ctypes::c_void, size: size_t) -> *mut ctypes::c_void,
@@ -1075,12 +1082,56 @@ pub struct playdate_sys {
     >,
     pub isCrankDocked: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
     pub getFlipped: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
+    pub setAutoLockDisabled: ::core::option::Option<unsafe extern "C" fn(enable: ctypes::c_int)>,
+    pub addMenuItem: ::core::option::Option<
+        unsafe extern "C" fn(
+            title: *const ctypes::c_char,
+            callback: PDMenuItemCallbackFunction,
+            userdata: *mut ctypes::c_void,
+        ) -> *mut PDMenuItem,
+    >,
+    pub addCheckmarkMenuItem: ::core::option::Option<
+        unsafe extern "C" fn(
+            title: *const ctypes::c_char,
+            value: ctypes::c_int,
+            callback: PDMenuItemCallbackFunction,
+            userdata: *mut ctypes::c_void,
+        ) -> *mut PDMenuItem,
+    >,
+    pub addOptionsMenuItem: ::core::option::Option<
+        unsafe extern "C" fn(
+            title: *const ctypes::c_char,
+            optionTitles: *mut *const ctypes::c_char,
+            optionsCount: ctypes::c_int,
+            f: PDMenuItemCallbackFunction,
+            userdata: *mut ctypes::c_void,
+        ) -> *mut PDMenuItem,
+    >,
+    pub removeAllMenuItems: *mut ctypes::c_void,
+    pub removeMenuItem: ::core::option::Option<unsafe extern "C" fn(menuItem: *mut PDMenuItem)>,
+    pub getMenuItemValue:
+        ::core::option::Option<unsafe extern "C" fn(menuItem: *mut PDMenuItem) -> ctypes::c_int>,
+    pub setMenuItemValue: ::core::option::Option<
+        unsafe extern "C" fn(menuItem: *mut PDMenuItem, value: ctypes::c_int),
+    >,
+    pub getMenuItemTitle: ::core::option::Option<
+        unsafe extern "C" fn(menuItem: *mut PDMenuItem) -> *const ctypes::c_char,
+    >,
+    pub setMenuItemTitle: ::core::option::Option<
+        unsafe extern "C" fn(menuItem: *mut PDMenuItem, title: *const ctypes::c_char),
+    >,
+    pub getMenuItemUserdata: ::core::option::Option<
+        unsafe extern "C" fn(menuItem: *mut PDMenuItem) -> *mut ctypes::c_void,
+    >,
+    pub setMenuItemUserdata: ::core::option::Option<
+        unsafe extern "C" fn(menuItem: *mut PDMenuItem, ud: *mut ctypes::c_void),
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_sys() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sys>(),
-        72usize,
+        120usize,
         concat!("Size of: ", stringify!(playdate_sys))
     );
     assert_eq!(
@@ -1277,6 +1328,143 @@ fn bindgen_test_layout_playdate_sys() {
             stringify!(getFlipped)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).setAutoLockDisabled as *const _ as usize
+        },
+        72usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(setAutoLockDisabled)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).addMenuItem as *const _ as usize },
+        76usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(addMenuItem)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).addCheckmarkMenuItem as *const _ as usize
+        },
+        80usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(addCheckmarkMenuItem)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).addOptionsMenuItem as *const _ as usize
+        },
+        84usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(addOptionsMenuItem)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).removeAllMenuItems as *const _ as usize
+        },
+        88usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(removeAllMenuItems)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).removeMenuItem as *const _ as usize },
+        92usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(removeMenuItem)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).getMenuItemValue as *const _ as usize },
+        96usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(getMenuItemValue)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).setMenuItemValue as *const _ as usize },
+        100usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(setMenuItemValue)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).getMenuItemTitle as *const _ as usize },
+        104usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(getMenuItemTitle)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).setMenuItemTitle as *const _ as usize },
+        108usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(setMenuItemTitle)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).getMenuItemUserdata as *const _ as usize
+        },
+        112usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(getMenuItemUserdata)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sys>())).setMenuItemUserdata as *const _ as usize
+        },
+        116usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(setMenuItemUserdata)
+        )
+    );
+}
+impl Default for playdate_sys {
+    fn default() -> Self {
+        unsafe { ::core::mem::zeroed() }
+    }
 }
 pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
@@ -1541,12 +1729,13 @@ pub struct playdate_lua {
     pub callFunction: ::core::option::Option<
         unsafe extern "C" fn(name: *const ctypes::c_char, nargs: ctypes::c_int),
     >,
+    pub pushFunction: ::core::option::Option<unsafe extern "C" fn(f: lua_CFunction)>,
 }
 #[test]
 fn bindgen_test_layout_playdate_lua() {
     assert_eq!(
         ::core::mem::size_of::<playdate_lua>(),
-        120usize,
+        124usize,
         concat!("Size of: ", stringify!(playdate_lua))
     );
     assert_eq!(
@@ -1852,6 +2041,16 @@ fn bindgen_test_layout_playdate_lua() {
             stringify!(playdate_lua),
             "::",
             stringify!(callFunction)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_lua>())).pushFunction as *const _ as usize },
+        120usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_lua),
+            "::",
+            stringify!(pushFunction)
         )
     );
 }
@@ -2166,7 +2365,11 @@ impl Default for json_decoder {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct json_reader {
     pub read: ::core::option::Option<
-        unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int,
+        unsafe extern "C" fn(
+            readud: *mut ctypes::c_void,
+            buf: *mut u8,
+            bufsize: ctypes::c_int,
+        ) -> ctypes::c_int,
     >,
     pub userdata: *mut ctypes::c_void,
 }
@@ -2483,10 +2686,10 @@ impl json_encoder {
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_json {
-    pub decode: ::core::option::Option<
+    pub decode_deprecated: ::core::option::Option<
         unsafe extern "C" fn(functions: json_decoder, reader: json_reader) -> ctypes::c_int,
     >,
-    pub decodeString: ::core::option::Option<
+    pub decodeString_deprecated: ::core::option::Option<
         unsafe extern "C" fn(
             functions: json_decoder,
             jsonString: *const ctypes::c_char,
@@ -2500,12 +2703,26 @@ pub struct playdate_json {
             pretty: ctypes::c_int,
         ),
     >,
+    pub decode: ::core::option::Option<
+        unsafe extern "C" fn(
+            functions: *mut json_decoder,
+            reader: json_reader,
+            outval: *mut json_value,
+        ) -> ctypes::c_int,
+    >,
+    pub decodeString: ::core::option::Option<
+        unsafe extern "C" fn(
+            functions: *mut json_decoder,
+            jsonString: *const ctypes::c_char,
+            outval: *mut json_value,
+        ) -> ctypes::c_int,
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_json() {
     assert_eq!(
         ::core::mem::size_of::<playdate_json>(),
-        12usize,
+        20usize,
         concat!("Size of: ", stringify!(playdate_json))
     );
     assert_eq!(
@@ -2514,23 +2731,27 @@ fn bindgen_test_layout_playdate_json() {
         concat!("Alignment of ", stringify!(playdate_json))
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<playdate_json>())).decode as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<playdate_json>())).decode_deprecated as *const _ as usize
+        },
         0usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_json),
             "::",
-            stringify!(decode)
+            stringify!(decode_deprecated)
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<playdate_json>())).decodeString as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<playdate_json>())).decodeString_deprecated as *const _ as usize
+        },
         4usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_json),
             "::",
-            stringify!(decodeString)
+            stringify!(decodeString_deprecated)
         )
     );
     assert_eq!(
@@ -2541,6 +2762,26 @@ fn bindgen_test_layout_playdate_json() {
             stringify!(playdate_json),
             "::",
             stringify!(initEncoder)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_json>())).decode as *const _ as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_json),
+            "::",
+            stringify!(decode)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_json>())).decodeString as *const _ as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_json),
+            "::",
+            stringify!(decodeString)
         )
     );
 }
@@ -2747,12 +2988,13 @@ pub struct playdate_file {
             whence: ctypes::c_int,
         ) -> ctypes::c_int,
     >,
+    pub geterr: ::core::option::Option<unsafe extern "C" fn() -> *const ctypes::c_char>,
 }
 #[test]
 fn bindgen_test_layout_playdate_file() {
     assert_eq!(
         ::core::mem::size_of::<playdate_file>(),
-        48usize,
+        52usize,
         concat!("Size of: ", stringify!(playdate_file))
     );
     assert_eq!(
@@ -2878,6 +3120,16 @@ fn bindgen_test_layout_playdate_file() {
             stringify!(playdate_file),
             "::",
             stringify!(seek)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_file>())).geterr as *const _ as usize },
+        48usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_file),
+            "::",
+            stringify!(geterr)
         )
     );
 }
@@ -3207,7 +3459,7 @@ pub struct playdate_sprite {
         ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite, x: f32, y: f32)>,
     pub moveBy:
         ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite, dx: f32, dy: f32)>,
-    pub getPosition: ::core::option::Option<
+    pub getPosition_deprecated: ::core::option::Option<
         unsafe extern "C" fn(sprite: *mut LCDSprite, x: *mut ctypes::c_int, y: *mut ctypes::c_int),
     >,
     pub setImage: ::core::option::Option<
@@ -3335,12 +3587,15 @@ pub struct playdate_sprite {
     pub setCollisionResponseFunction: ::core::option::Option<
         unsafe extern "C" fn(sprite: *mut LCDSprite, func: LCDSpriteCollisionFilterProc),
     >,
+    pub getPosition: ::core::option::Option<
+        unsafe extern "C" fn(sprite: *mut LCDSprite, x: *mut f32, y: *mut f32),
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_sprite() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sprite>(),
-        224usize,
+        228usize,
         concat!("Size of: ", stringify!(playdate_sprite))
     );
     assert_eq!(
@@ -3471,13 +3726,15 @@ fn bindgen_test_layout_playdate_sprite() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<playdate_sprite>())).getPosition as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sprite>())).getPosition_deprecated as *const _ as usize
+        },
         48usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_sprite),
             "::",
-            stringify!(getPosition)
+            stringify!(getPosition_deprecated)
         )
     );
     assert_eq!(
@@ -3952,6 +4209,16 @@ fn bindgen_test_layout_playdate_sprite() {
             stringify!(playdate_sprite),
             "::",
             stringify!(setCollisionResponseFunction)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sprite>())).getPosition as *const _ as usize },
+        224usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sprite),
+            "::",
+            stringify!(getPosition)
         )
     );
 }
@@ -5162,6 +5429,7 @@ pub enum PDSystemEvent {
     kEventTerminate = 6,
     kEventKeyPressed = 7,
     kEventKeyReleased = 8,
+    kEventLowPower = 9,
 }
 pub type PDEventHandler = ::core::option::Option<
     unsafe extern "C" fn(
