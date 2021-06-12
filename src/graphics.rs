@@ -82,72 +82,48 @@ impl BitmapInner {
 
     pub fn draw(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
-        mode: LCDBitmapDrawMode,
         flip: LCDBitmapFlip,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).drawBitmap,
             self.raw_bitmap,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             location.x,
             location.y,
-            mode.into(),
             flip.into(),
-            clip,
         )?;
         Ok(())
     }
 
     pub fn draw_scaled(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
         scale: Vector2D<f32>,
-        mode: LCDBitmapDrawMode,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).drawScaledBitmap,
             self.raw_bitmap,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             location.x,
             location.y,
             scale.x,
             scale.y,
-            mode.into(),
-            clip,
         )
     }
 
     pub fn tile(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
         size: ScreenSize,
-        mode: LCDBitmapDrawMode,
         flip: LCDBitmapFlip,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).tileBitmap,
             self.raw_bitmap,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             location.x,
             location.y,
             size.width,
             size.height,
-            mode.into(),
             flip.into(),
-            clip,
         )?;
         Ok(())
     }
@@ -265,46 +241,33 @@ impl Bitmap {
 
     pub fn draw(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
-        mode: LCDBitmapDrawMode,
         flip: LCDBitmapFlip,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         self.inner
             .borrow()
-            .draw(target, stencil, location, mode, flip, clip)
+            .draw(location, flip)
     }
 
     pub fn draw_scaled(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
         scale: Vector2D<f32>,
-        mode: LCDBitmapDrawMode,
-        flip: LCDBitmapFlip,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         self.inner
             .borrow()
-            .draw_scaled(target, stencil, location, scale, mode, clip)
+            .draw_scaled(location, scale)
     }
 
     pub fn tile(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         location: ScreenPoint,
         size: ScreenSize,
-        mode: LCDBitmapDrawMode,
         flip: LCDBitmapFlip,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         self.inner
             .borrow()
-            .tile(target, stencil, location, size, mode, flip, clip)
+            .tile(location, size, flip)
     }
 
     pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
@@ -362,18 +325,6 @@ impl Font {
     pub fn new(font: *mut crankstart_sys::LCDFont) -> Result<Self, Error> {
         anyhow::ensure!(font != ptr::null_mut(), "Null pointer passed to Font::new");
         Ok(Self(font))
-    }
-
-    pub fn get_glyph(&self, c: u16) -> Result<(Bitmap, u32), Error> {
-        let graphics = Graphics::get();
-        let mut advance = 0;
-        let raw_bitmap = pd_func_caller!((*graphics.0).getFontGlyph, self.0, c, &mut advance)?;
-        Ok((Bitmap::new(raw_bitmap), advance))
-    }
-
-    pub fn get_kerning(&self, c1: u16, c2: u16) -> Result<i32, Error> {
-        let graphics = Graphics::get();
-        pd_func_caller!((*graphics.0).getFontKerning, self.0, c1, c2)
     }
 }
 
@@ -468,10 +419,10 @@ impl BitmapTable {
 static mut GRAPHICS: Graphics = Graphics(ptr::null_mut());
 
 #[derive(Clone, Debug)]
-pub struct Graphics(*mut crankstart_sys::playdate_graphics);
+pub struct Graphics(*const crankstart_sys::playdate_graphics);
 
 impl Graphics {
-    pub(crate) fn new(graphics: *mut crankstart_sys::playdate_graphics) {
+    pub(crate) fn new(graphics: *const crankstart_sys::playdate_graphics) {
         unsafe {
             GRAPHICS = Self(graphics);
         }
@@ -481,7 +432,7 @@ impl Graphics {
         unsafe { GRAPHICS.clone() }
     }
 
-    pub fn get_ptr() -> *mut crankstart_sys::playdate_graphics {
+    pub fn get_ptr() -> *const crankstart_sys::playdate_graphics {
         Self::get().0
     }
 
@@ -505,8 +456,8 @@ impl Graphics {
         Ok(frame)
     }
 
-    pub fn get_debug_image(&self) -> Result<Bitmap, Error> {
-        let raw_bitmap = pd_func_caller!((*self.0).getDebugImage)?;
+    pub fn get_debug_bitmap(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!((*self.0).getDebugBitmap)?;
         anyhow::ensure!(
             raw_bitmap != ptr::null_mut(),
             "Null pointer returned from getDebugImage"
@@ -608,44 +559,31 @@ impl Graphics {
 
     pub fn draw_line(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         p1: ScreenPoint,
         p2: ScreenPoint,
         width: i32,
         color: LCDColor,
-        end_cap_style: LCDLineCapStyle,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawLine,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             p1.x,
             p1.y,
             p2.x,
             p2.y,
             width,
             color.into(),
-            end_cap_style,
-            clip
         )
     }
 
     pub fn fill_triangle(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         p1: ScreenPoint,
         p2: ScreenPoint,
         p3: ScreenPoint,
         color: LCDColor,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillTriangle,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             p1.x,
             p1.y,
             p2.x,
@@ -653,68 +591,50 @@ impl Graphics {
             p3.x,
             p3.y,
             color.into(),
-            clip
         )
     }
 
     pub fn draw_rect(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         rect: ScreenRect,
         color: LCDColor,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawRect,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             rect.origin.x,
             rect.origin.y,
             rect.size.width,
             rect.size.height,
             color.into(),
-            clip
         )
     }
 
     pub fn fill_rect(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         rect: ScreenRect,
         color: LCDColor,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillRect,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             rect.origin.x,
             rect.origin.y,
             rect.size.width,
             rect.size.height,
             color.into(),
-            clip
         )
     }
 
     pub fn draw_ellipse(
         &self,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         center: ScreenPoint,
         size: ScreenSize,
         line_width: i32,
         start_angle: f32,
         end_angle: f32,
         color: LCDColor,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawEllipse,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             center.x,
             center.y,
             size.width,
@@ -723,7 +643,6 @@ impl Graphics {
             start_angle,
             end_angle,
             color.into(),
-            clip
         )
     }
 
@@ -741,8 +660,6 @@ impl Graphics {
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillEllipse,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             center.x,
             center.y,
             size.width,
@@ -750,7 +667,6 @@ impl Graphics {
             start_angle,
             end_angle,
             color.into(),
-            clip
         )
     }
 
@@ -762,29 +678,17 @@ impl Graphics {
 
     pub fn draw_text(
         &self,
-        font: &Font,
-        target: OptionalBitmap,
-        stencil: OptionalBitmap,
         text: &str,
         position: ScreenPoint,
-        mode: LCDBitmapDrawMode,
-        tracking: i32,
-        clip: LCDRect,
     ) -> Result<i32, Error> {
         let c_text = CString::new(text).map_err(Error::msg)?;
         pd_func_caller!(
             (*self.0).drawText,
-            font.0,
-            raw_bitmap(target),
-            raw_bitmap(stencil),
             c_text.as_ptr() as *const core::ffi::c_void,
             text.len() as size_t,
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
-            mode.into(),
-            tracking,
-            clip,
         )
     }
 

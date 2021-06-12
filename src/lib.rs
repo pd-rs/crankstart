@@ -28,12 +28,12 @@ use {
 };
 
 pub struct Playdate {
-    playdate: *mut crankstart_sys::PlaydateAPI,
+    playdate: *const crankstart_sys::PlaydateAPI,
 }
 
 impl Playdate {
     pub fn new(
-        playdate: *mut crankstart_sys::PlaydateAPI,
+        playdate: *const crankstart_sys::PlaydateAPI,
         sprite_update: SpriteUpdateFunction,
         sprite_draw: SpriteDrawFunction,
     ) -> Self {
@@ -192,7 +192,7 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
-    pub fn playdate_sprite(&self) -> *mut playdate_sprite {
+    pub fn playdate_sprite(&self) -> *const playdate_sprite {
         SpriteManager::get_mut().playdate_sprite
     }
 }

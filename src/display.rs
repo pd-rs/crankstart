@@ -7,10 +7,10 @@ use core::ptr;
 use euclid::{default::Vector2D, size2};
 
 #[derive(Clone, Debug)]
-pub struct Display(*mut crankstart_sys::playdate_display);
+pub struct Display(*const crankstart_sys::playdate_display);
 
 impl Display {
-    pub(crate) fn new(display: *mut crankstart_sys::playdate_display) {
+    pub(crate) fn new(display: *const crankstart_sys::playdate_display) {
         unsafe {
             DISPLAY = Self(display);
         }
