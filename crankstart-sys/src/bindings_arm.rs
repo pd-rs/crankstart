@@ -279,6 +279,12 @@ pub enum PDStringEncoding {
 }
 pub type LCDPattern = [u8; 16usize];
 pub type LCDColor = usize;
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LCDPolygonFillRule {
+    kPolygonFillNonZero = 0,
+    kPolygonFillEvenOdd = 1,
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct LCDSprite {
@@ -304,12 +310,24 @@ pub struct playdate_video {
     pub getError: ::core::option::Option<
         unsafe extern "C" fn(p: *mut LCDVideoPlayer) -> *const ctypes::c_char,
     >,
+    pub getInfo: ::core::option::Option<
+        unsafe extern "C" fn(
+            p: *mut LCDVideoPlayer,
+            outWidth: *mut ctypes::c_int,
+            outHeight: *mut ctypes::c_int,
+            outFrameRate: *mut f32,
+            outFrameCount: *mut ctypes::c_int,
+            outCurrentFrame: *mut ctypes::c_int,
+        ),
+    >,
+    pub getContext:
+        ::core::option::Option<unsafe extern "C" fn(p: *mut LCDVideoPlayer) -> *mut LCDBitmap>,
 }
 #[test]
 fn bindgen_test_layout_playdate_video() {
     assert_eq!(
         ::core::mem::size_of::<playdate_video>(),
-        24usize,
+        32usize,
         concat!("Size of: ", stringify!(playdate_video))
     );
     assert_eq!(
@@ -379,6 +397,26 @@ fn bindgen_test_layout_playdate_video() {
             stringify!(getError)
         )
     );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_video>())).getInfo as *const _ as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_video),
+            "::",
+            stringify!(getInfo)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_video>())).getContext as *const _ as usize },
+        28usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_video),
+            "::",
+            stringify!(getContext)
+        )
+    );
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -399,7 +437,7 @@ pub struct playdate_graphics {
         ),
     >,
     pub clearClipRect: ::core::option::Option<unsafe extern "C" fn()>,
-    pub setLineCapSyle: ::core::option::Option<unsafe extern "C" fn(endCapStyle: LCDLineCapStyle)>,
+    pub setLineCapStyle: ::core::option::Option<unsafe extern "C" fn(endCapStyle: LCDLineCapStyle)>,
     pub setFont: ::core::option::Option<unsafe extern "C" fn(font: *mut LCDFont)>,
     pub setTextTracking: ::core::option::Option<unsafe extern "C" fn(tracking: ctypes::c_int)>,
     pub pushContext: ::core::option::Option<unsafe extern "C" fn(target: *mut LCDBitmap)>,
@@ -631,12 +669,29 @@ pub struct playdate_graphics {
             rect: LCDRect,
         ) -> ctypes::c_int,
     >,
+    pub setScreenClipRect: ::core::option::Option<
+        unsafe extern "C" fn(
+            x: ctypes::c_int,
+            y: ctypes::c_int,
+            width: ctypes::c_int,
+            height: ctypes::c_int,
+        ),
+    >,
+    pub fillPolygon: ::core::option::Option<
+        unsafe extern "C" fn(
+            nPoints: ctypes::c_int,
+            coords: *mut ctypes::c_int,
+            color: LCDColor,
+            fillrule: LCDPolygonFillRule,
+        ),
+    >,
+    pub getFontHeight: ::core::option::Option<unsafe extern "C" fn(font: *mut LCDFont) -> u8>,
 }
 #[test]
 fn bindgen_test_layout_playdate_graphics() {
     assert_eq!(
         ::core::mem::size_of::<playdate_graphics>(),
-        196usize,
+        208usize,
         concat!("Size of: ", stringify!(playdate_graphics))
     );
     assert_eq!(
@@ -732,14 +787,14 @@ fn bindgen_test_layout_playdate_graphics() {
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_graphics>())).setLineCapSyle as *const _ as usize
+            &(*(::core::ptr::null::<playdate_graphics>())).setLineCapStyle as *const _ as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_graphics),
             "::",
-            stringify!(setLineCapSyle)
+            stringify!(setLineCapStyle)
         )
     );
     assert_eq!(
@@ -1176,6 +1231,40 @@ fn bindgen_test_layout_playdate_graphics() {
             stringify!(checkMaskCollision)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).setScreenClipRect as *const _ as usize
+        },
+        196usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(setScreenClipRect)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_graphics>())).fillPolygon as *const _ as usize },
+        200usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(fillPolygon)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).getFontHeight as *const _ as usize
+        },
+        204usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(getFontHeight)
+        )
+    );
 }
 impl Default for playdate_graphics {
     fn default() -> Self {
@@ -1343,12 +1432,14 @@ pub struct playdate_sys {
         unsafe extern "C" fn(menuItem: *mut PDMenuItem, ud: *mut ctypes::c_void),
     >,
     pub getReduceFlashing: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
+    pub getElapsedTime: ::core::option::Option<unsafe extern "C" fn() -> f32>,
+    pub resetElapsedTime: ::core::option::Option<unsafe extern "C" fn()>,
 }
 #[test]
 fn bindgen_test_layout_playdate_sys() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sys>(),
-        124usize,
+        132usize,
         concat!("Size of: ", stringify!(playdate_sys))
     );
     assert_eq!(
@@ -1687,6 +1778,26 @@ fn bindgen_test_layout_playdate_sys() {
             stringify!(getReduceFlashing)
         )
     );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).getElapsedTime as *const _ as usize },
+        124usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(getElapsedTime)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sys>())).resetElapsedTime as *const _ as usize },
+        128usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sys),
+            "::",
+            stringify!(resetElapsedTime)
+        )
+    );
 }
 pub type lua_State = *mut ctypes::c_void;
 pub type lua_CFunction =
@@ -1949,15 +2060,22 @@ pub struct playdate_lua {
     pub getObjectValue: ::core::option::Option<
         unsafe extern "C" fn(obj: *mut LuaUDObject, slot: ctypes::c_int) -> ctypes::c_int,
     >,
-    pub callFunction: ::core::option::Option<
+    pub callFunction_deprecated: ::core::option::Option<
         unsafe extern "C" fn(name: *const ctypes::c_char, nargs: ctypes::c_int),
+    >,
+    pub callFunction: ::core::option::Option<
+        unsafe extern "C" fn(
+            name: *const ctypes::c_char,
+            nargs: ctypes::c_int,
+            outerr: *mut *const ctypes::c_char,
+        ) -> ctypes::c_int,
     >,
 }
 #[test]
 fn bindgen_test_layout_playdate_lua() {
     assert_eq!(
         ::core::mem::size_of::<playdate_lua>(),
-        124usize,
+        128usize,
         concat!("Size of: ", stringify!(playdate_lua))
     );
     assert_eq!(
@@ -2266,8 +2384,20 @@ fn bindgen_test_layout_playdate_lua() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<playdate_lua>())).callFunction as *const _ as usize },
+        unsafe {
+            &(*(::core::ptr::null::<playdate_lua>())).callFunction_deprecated as *const _ as usize
+        },
         120usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_lua),
+            "::",
+            stringify!(callFunction_deprecated)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_lua>())).callFunction as *const _ as usize },
+        124usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_lua),
@@ -6150,7 +6280,7 @@ pub struct playdate_sound_instrument {
             rangeStart: MIDINote,
             rangeEnd: MIDINote,
             transpose: f32,
-        ),
+        ) -> ctypes::c_int,
     >,
     pub playNote: ::core::option::Option<
         unsafe extern "C" fn(
@@ -6385,7 +6515,7 @@ pub struct playdate_sound_track {
             step: u32,
             len: u32,
             note: MIDINote,
-            vel: f32,
+            velocity: f32,
         ),
     >,
     pub removeNoteEvent: ::core::option::Option<
@@ -6405,12 +6535,26 @@ pub struct playdate_sound_track {
     pub setMuted: ::core::option::Option<
         unsafe extern "C" fn(track: *mut SequenceTrack, mute: ctypes::c_int),
     >,
+    pub getLength: ::core::option::Option<unsafe extern "C" fn(track: *mut SequenceTrack) -> u32>,
+    pub getIndexForStep: ::core::option::Option<
+        unsafe extern "C" fn(track: *mut SequenceTrack, step: u32) -> ctypes::c_int,
+    >,
+    pub getNoteAtIndex: ::core::option::Option<
+        unsafe extern "C" fn(
+            track: *mut SequenceTrack,
+            index: ctypes::c_int,
+            outStep: *mut u32,
+            outLen: *mut u32,
+            outNote: *mut MIDINote,
+            outVelocity: *mut f32,
+        ) -> ctypes::c_int,
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_sound_track() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sound_track>(),
-        52usize,
+        64usize,
         concat!("Size of: ", stringify!(playdate_sound_track))
     );
     assert_eq!(
@@ -6570,15 +6714,52 @@ fn bindgen_test_layout_playdate_sound_track() {
             stringify!(setMuted)
         )
     );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sound_track>())).getLength as *const _ as usize },
+        52usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_track),
+            "::",
+            stringify!(getLength)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_track>())).getIndexForStep as *const _ as usize
+        },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_track),
+            "::",
+            stringify!(getIndexForStep)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_track>())).getNoteAtIndex as *const _ as usize
+        },
+        60usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_track),
+            "::",
+            stringify!(getNoteAtIndex)
+        )
+    );
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SoundSequence {
     _unused: [u8; 0],
 }
+pub type SequenceFinishedCallback = ::core::option::Option<
+    unsafe extern "C" fn(seq: *mut SoundSequence, userdata: *mut ctypes::c_void),
+>;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct playdate_sound_sequencer {
+pub struct playdate_sound_sequence {
     pub newSequence: ::core::option::Option<unsafe extern "C" fn() -> *mut SoundSequence>,
     pub freeSequence: ::core::option::Option<unsafe extern "C" fn(sequence: *mut SoundSequence)>,
     pub loadMidiFile: ::core::option::Option<
@@ -6614,175 +6795,268 @@ pub struct playdate_sound_sequencer {
         ),
     >,
     pub allNotesOff: ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence)>,
+    pub isPlaying:
+        ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence) -> ctypes::c_int>,
+    pub getLength: ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence) -> u32>,
+    pub play: ::core::option::Option<
+        unsafe extern "C" fn(
+            seq: *mut SoundSequence,
+            finishCallback: SequenceFinishedCallback,
+            userdata: *mut ctypes::c_void,
+        ),
+    >,
+    pub stop: ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence)>,
+    pub getCurrentStep: ::core::option::Option<
+        unsafe extern "C" fn(
+            seq: *mut SoundSequence,
+            timeOffset: *mut ctypes::c_int,
+        ) -> ctypes::c_int,
+    >,
+    pub setCurrentStep: ::core::option::Option<
+        unsafe extern "C" fn(
+            seq: *mut SoundSequence,
+            step: ctypes::c_int,
+            timeOffset: ctypes::c_int,
+            playNotes: ctypes::c_int,
+        ),
+    >,
 }
 #[test]
-fn bindgen_test_layout_playdate_sound_sequencer() {
+fn bindgen_test_layout_playdate_sound_sequence() {
     assert_eq!(
-        ::core::mem::size_of::<playdate_sound_sequencer>(),
-        52usize,
-        concat!("Size of: ", stringify!(playdate_sound_sequencer))
+        ::core::mem::size_of::<playdate_sound_sequence>(),
+        76usize,
+        concat!("Size of: ", stringify!(playdate_sound_sequence))
     );
     assert_eq!(
-        ::core::mem::align_of::<playdate_sound_sequencer>(),
+        ::core::mem::align_of::<playdate_sound_sequence>(),
         4usize,
-        concat!("Alignment of ", stringify!(playdate_sound_sequencer))
+        concat!("Alignment of ", stringify!(playdate_sound_sequence))
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).newSequence as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).newSequence as *const _ as usize
         },
         0usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(newSequence)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).freeSequence as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).freeSequence as *const _ as usize
         },
         4usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(freeSequence)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).loadMidiFile as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).loadMidiFile as *const _ as usize
         },
         8usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(loadMidiFile)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).getTime as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getTime as *const _ as usize
         },
         12usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(getTime)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).setTime as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).setTime as *const _ as usize
         },
         16usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(setTime)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).setLoops as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).setLoops as *const _ as usize
         },
         20usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(setLoops)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).getTempo as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getTempo as *const _ as usize
         },
         24usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(getTempo)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).setTempo as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).setTempo as *const _ as usize
         },
         28usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(setTempo)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).getTrackCount as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getTrackCount as *const _ as usize
         },
         32usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(getTrackCount)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).addTrack as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).addTrack as *const _ as usize
         },
         36usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(addTrack)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).getTrackAtIndex as *const _
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getTrackAtIndex as *const _
                 as usize
         },
         40usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(getTrackAtIndex)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).setTrackAtIndex as *const _
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).setTrackAtIndex as *const _
                 as usize
         },
         44usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(setTrackAtIndex)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::core::ptr::null::<playdate_sound_sequencer>())).allNotesOff as *const _ as usize
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).allNotesOff as *const _ as usize
         },
         48usize,
         concat!(
             "Offset of field: ",
-            stringify!(playdate_sound_sequencer),
+            stringify!(playdate_sound_sequence),
             "::",
             stringify!(allNotesOff)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).isPlaying as *const _ as usize
+        },
+        52usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(isPlaying)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getLength as *const _ as usize
+        },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(getLength)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sound_sequence>())).play as *const _ as usize },
+        60usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(play)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sound_sequence>())).stop as *const _ as usize },
+        64usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(stop)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).getCurrentStep as *const _ as usize
+        },
+        68usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(getCurrentStep)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_sequence>())).setCurrentStep as *const _ as usize
+        },
+        72usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(setCurrentStep)
         )
     );
 }
@@ -8150,7 +8424,7 @@ pub struct playdate_sound {
     pub sample: *const playdate_sound_sample,
     pub sampleplayer: *const playdate_sound_sampleplayer,
     pub synth: *const playdate_sound_synth,
-    pub sequencer: *const playdate_sound_sequencer,
+    pub sequence: *const playdate_sound_sequence,
     pub effect: *const playdate_sound_effect,
     pub lfo: *const playdate_sound_lfo,
     pub envelope: *const playdate_sound_envelope,
@@ -8252,13 +8526,13 @@ fn bindgen_test_layout_playdate_sound() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<playdate_sound>())).sequencer as *const _ as usize },
+        unsafe { &(*(::core::ptr::null::<playdate_sound>())).sequence as *const _ as usize },
         20usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_sound),
             "::",
-            stringify!(sequencer)
+            stringify!(sequence)
         )
     );
     assert_eq!(
