@@ -80,11 +80,7 @@ impl BitmapInner {
         })
     }
 
-    pub fn draw(
-        &self,
-        location: ScreenPoint,
-        flip: LCDBitmapFlip,
-    ) -> Result<(), Error> {
+    pub fn draw(&self, location: ScreenPoint, flip: LCDBitmapFlip) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).drawBitmap,
             self.raw_bitmap,
@@ -95,11 +91,7 @@ impl BitmapInner {
         Ok(())
     }
 
-    pub fn draw_scaled(
-        &self,
-        location: ScreenPoint,
-        scale: Vector2D<f32>,
-    ) -> Result<(), Error> {
+    pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).drawScaledBitmap,
             self.raw_bitmap,
@@ -239,24 +231,12 @@ impl Bitmap {
         self.inner.borrow().get_data()
     }
 
-    pub fn draw(
-        &self,
-        location: ScreenPoint,
-        flip: LCDBitmapFlip,
-    ) -> Result<(), Error> {
-        self.inner
-            .borrow()
-            .draw(location, flip)
+    pub fn draw(&self, location: ScreenPoint, flip: LCDBitmapFlip) -> Result<(), Error> {
+        self.inner.borrow().draw(location, flip)
     }
 
-    pub fn draw_scaled(
-        &self,
-        location: ScreenPoint,
-        scale: Vector2D<f32>,
-    ) -> Result<(), Error> {
-        self.inner
-            .borrow()
-            .draw_scaled(location, scale)
+    pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
+        self.inner.borrow().draw_scaled(location, scale)
     }
 
     pub fn tile(
@@ -265,9 +245,7 @@ impl Bitmap {
         size: ScreenSize,
         flip: LCDBitmapFlip,
     ) -> Result<(), Error> {
-        self.inner
-            .borrow()
-            .tile(location, size, flip)
+        self.inner.borrow().tile(location, size, flip)
     }
 
     pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
@@ -594,11 +572,7 @@ impl Graphics {
         )
     }
 
-    pub fn draw_rect(
-        &self,
-        rect: ScreenRect,
-        color: LCDColor,
-    ) -> Result<(), Error> {
+    pub fn draw_rect(&self, rect: ScreenRect, color: LCDColor) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawRect,
             rect.origin.x,
@@ -609,11 +583,7 @@ impl Graphics {
         )
     }
 
-    pub fn fill_rect(
-        &self,
-        rect: ScreenRect,
-        color: LCDColor,
-    ) -> Result<(), Error> {
+    pub fn fill_rect(&self, rect: ScreenRect, color: LCDColor) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillRect,
             rect.origin.x,
@@ -676,11 +646,7 @@ impl Graphics {
         Font::new(font)
     }
 
-    pub fn draw_text(
-        &self,
-        text: &str,
-        position: ScreenPoint,
-    ) -> Result<i32, Error> {
+    pub fn draw_text(&self, text: &str, position: ScreenPoint) -> Result<i32, Error> {
         let c_text = CString::new(text).map_err(Error::msg)?;
         pd_func_caller!(
             (*self.0).drawText,

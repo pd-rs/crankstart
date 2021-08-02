@@ -84,7 +84,7 @@ impl BackgroundHandler {
         if self.y > self.height {
             self.y = 0;
         }
-        sprite.set_needs_redraw()?;
+        sprite.mark_dirty()?;
         Ok(())
     }
 
@@ -96,20 +96,12 @@ impl BackgroundHandler {
             bottom: 240,
         };
         self.background_image.draw(
-            None,
-            None,
             point2(0, self.y),
-            LCDBitmapDrawMode::kDrawModeCopy,
             LCDBitmapFlip::kBitmapUnflipped,
-            r,
         )?;
         self.background_image.draw(
-            None,
-            None,
             point2(0, self.y - self.height),
-            LCDBitmapDrawMode::kDrawModeCopy,
             LCDBitmapFlip::kBitmapUnflipped,
-            r,
         )?;
         Ok(())
     }

@@ -40,19 +40,8 @@ impl Game for State {
         let graphics = Graphics::get();
         graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
         graphics.draw_text(
-            &self.font,
-            None,
-            None,
             "Hello World Rust",
             self.location,
-            LCDBitmapDrawMode::kDrawModeCopy,
-            0,
-            LCDRect {
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-            },
         )?;
 
         self.location += self.velocity;
