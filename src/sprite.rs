@@ -275,15 +275,10 @@ impl SpriteInner {
         )?;
         Ok((actual_x, actual_y, Collisions(raw_collision_info, count)))
     }
-	
-    pub fn mark_dirty(
-        &mut self,
-    ) -> Result<(), Error> {
-        pd_func_caller!(
-            (*self.playdate_sprite).markDirty,
-            self.raw_sprite,
-        )
-	}
+
+    pub fn mark_dirty(&mut self) -> Result<(), Error> {
+        pd_func_caller!((*self.playdate_sprite).markDirty, self.raw_sprite,)
+    }
 }
 
 impl Drop for SpriteInner {
@@ -406,9 +401,7 @@ impl Sprite {
             .move_with_collisions(goal_x, goal_y)
     }
 
-    pub fn mark_dirty(
-        &mut self,
-    ) -> Result<(), Error> {
+    pub fn mark_dirty(&mut self) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
