@@ -35,8 +35,8 @@ pub type SpriteDrawFunction = unsafe extern "C" fn(
     drawrect: LCDRect,
 );
 pub type SpriteCollideFunction = unsafe extern "C" fn(
-    sprite: *mut crankstart_sys::LCDSprite,
-    other: *mut crankstart_sys::LCDSprite,
+    sprite: *const crankstart_sys::LCDSprite,
+    other: *const crankstart_sys::LCDSprite,
 ) -> SpriteCollisionResponseType;
 
 static mut SPRITE_UPDATE: Option<SpriteUpdateFunction> = None;
@@ -113,7 +113,7 @@ impl Drop for Collisions {
 
 pub struct SpriteInner {
     pub raw_sprite: *mut crankstart_sys::LCDSprite,
-    playdate_sprite: *mut playdate_sprite,
+    playdate_sprite: *const playdate_sprite,
     image: Option<Bitmap>,
 }
 
@@ -232,10 +232,6 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).getTag, self.raw_sprite)
     }
 
-    pub fn set_needs_redraw(&self) -> Result<(), Error> {
-        pd_func_caller!((*self.playdate_sprite).setNeedsRedraw, self.raw_sprite)
-    }
-
     pub fn move_to(&mut self, x: f32, y: f32) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).moveTo, self.raw_sprite, x, y)
     }
@@ -278,6 +274,10 @@ impl SpriteInner {
             &mut count,
         )?;
         Ok((actual_x, actual_y, Collisions(raw_collision_info, count)))
+    }
+
+    pub fn mark_dirty(&mut self) -> Result<(), Error> {
+        pd_func_caller!((*self.playdate_sprite).markDirty, self.raw_sprite,)
     }
 }
 
@@ -372,13 +372,6 @@ impl Sprite {
         self.inner.try_borrow().map_err(Error::msg)?.get_tag()
     }
 
-    pub fn set_needs_redraw(&mut self) -> Result<(), Error> {
-        self.inner
-            .try_borrow_mut()
-            .map_err(Error::msg)?
-            .set_needs_redraw()
-    }
-
     pub fn move_to(&mut self, x: f32, y: f32) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
@@ -407,6 +400,13 @@ impl Sprite {
             .map_err(Error::msg)?
             .move_with_collisions(goal_x, goal_y)
     }
+
+    pub fn mark_dirty(&mut self) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .mark_dirty()
+    }
 }
 
 impl Hash for Sprite {
@@ -424,13 +424,13 @@ impl PartialEq for Sprite {
 impl Eq for Sprite {}
 
 pub struct SpriteManager {
-    pub playdate_sprite: *mut playdate_sprite,
+    pub playdate_sprite: *const playdate_sprite,
     sprites: HashMap<*const crankstart_sys::LCDSprite, SpriteWeakPtr>,
 }
 
 impl SpriteManager {
     pub(crate) fn new(
-        playdate_sprite: *mut playdate_sprite,
+        playdate_sprite: *const playdate_sprite,
         update: SpriteUpdateFunction,
         draw: SpriteDrawFunction,
     ) {

@@ -28,12 +28,12 @@ use {
 };
 
 pub struct Playdate {
-    playdate: *mut crankstart_sys::PlaydateAPI,
+    playdate: *const crankstart_sys::PlaydateAPI,
 }
 
 impl Playdate {
     pub fn new(
-        playdate: *mut crankstart_sys::PlaydateAPI,
+        playdate: *const crankstart_sys::PlaydateAPI,
         sprite_update: SpriteUpdateFunction,
         sprite_draw: SpriteDrawFunction,
     ) -> Self {
@@ -192,7 +192,7 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
-    pub fn playdate_sprite(&self) -> *mut playdate_sprite {
+    pub fn playdate_sprite(&self) -> *const playdate_sprite {
         SpriteManager::get_mut().playdate_sprite
     }
 }
@@ -303,14 +303,14 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
     } else {
         System::log_to_console("panic\0");
     }
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    #[cfg(target_os = "macos")]
     {
         unsafe {
             core::intrinsics::breakpoint();
         }
         abort_with_addr(0xdeadbeef);
     }
-    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
+    #[cfg(not(target_os = "macos"))]
     {
         abort_with_addr(0xdeadbeef);
     }
@@ -354,7 +354,7 @@ fn alloc_error(_layout: Layout) -> ! {
     abort_with_addr(0xDEADFA11);
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let mut i = 0;
@@ -365,7 +365,7 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
     dest
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     if src < dest as *const u8 {
@@ -386,7 +386,7 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
     dest
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     let mut i = 0;
@@ -401,13 +401,13 @@ pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     0
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     memcmp(s1, s2, n)
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 pub unsafe fn memset_internal(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: usize) -> *mut u8 {
     let mut i = 0;
     while i < n {
@@ -417,13 +417,13 @@ pub unsafe fn memset_internal(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: u
     s
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn memset(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: usize) -> *mut u8 {
     memset_internal(s, c, n)
 }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[cfg(target_os = "macos")]
 #[no_mangle]
 pub unsafe extern "C" fn __bzero(s: *mut u8, n: usize) {
     memset_internal(s, 0, n);

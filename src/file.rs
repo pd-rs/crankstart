@@ -11,7 +11,7 @@ use {
 pub use crankstart_sys::FileStat;
 
 #[derive(Clone, Debug)]
-pub struct FileSystem(*mut crankstart_sys::playdate_file);
+pub struct FileSystem(*const crankstart_sys::playdate_file);
 
 extern "C" fn list_files_callback(
     filename: *const crankstart_sys::ctypes::c_char,
@@ -25,7 +25,7 @@ extern "C" fn list_files_callback(
 }
 
 impl FileSystem {
-    pub(crate) fn new(file: *mut crankstart_sys::playdate_file) {
+    pub(crate) fn new(file: *const crankstart_sys::playdate_file) {
         unsafe {
             FILE_SYSTEM = FileSystem(file);
         }

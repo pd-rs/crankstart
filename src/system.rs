@@ -12,10 +12,10 @@ pub use crankstart_sys::PDButtons;
 static mut SYSTEM: System = System(ptr::null_mut());
 
 #[derive(Clone, Debug)]
-pub struct System(*mut crankstart_sys::playdate_sys);
+pub struct System(*const crankstart_sys::playdate_sys);
 
 impl System {
-    pub(crate) fn new(system: *mut crankstart_sys::playdate_sys) {
+    pub(crate) fn new(system: *const crankstart_sys::playdate_sys) {
         unsafe {
             SYSTEM = Self(system);
         }
