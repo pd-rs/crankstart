@@ -8,11 +8,11 @@ use {
     crankstart::{
         crankstart_game,
         geometry::{ScreenPoint, ScreenVector},
-        graphics::{Font, Graphics, LCDBitmapDrawMode, LCDColor, LCDSolidColor},
+        graphics::{Font, Graphics, LCDColor, LCDSolidColor},
         system::System,
         Game, Playdate,
     },
-    crankstart_sys::{LCDRect, LCD_COLUMNS, LCD_ROWS},
+    crankstart_sys::{LCD_COLUMNS, LCD_ROWS},
     euclid::{point2, vec2},
 };
 
@@ -40,19 +40,8 @@ impl Game for State {
         let graphics = Graphics::get();
         graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
         graphics.draw_text(
-            &self.font,
-            None,
-            None,
             "Hello World Rust",
             self.location,
-            LCDBitmapDrawMode::kDrawModeCopy,
-            0,
-            LCDRect {
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-            },
         )?;
 
         self.location += self.velocity;

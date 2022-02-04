@@ -49,7 +49,7 @@ crankstart-sys = { path = "crankstart-sys" }
 [dev-dependencies]
 randomize = "3.0.1"
 enum-iterator = "0.6.0"
-rand = { version = "", default-features = false, features = [ "alloc" ] }
+rand = { version = "0.8.4", default-features = false, features = [ "alloc" ] }
 rand_pcg = "0.2.1"
 
 [dependencies.cstr_core]

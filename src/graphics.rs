@@ -143,15 +143,16 @@ impl BitmapInner {
     }
 
     pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
-        let raw_bitmap = pd_func_caller!(
-            (*Graphics::get_ptr()).transformedBitmap,
-            self.raw_bitmap,
-            rotation,
-            scale.x,
-            scale.y,
-            core::ptr::null_mut(),
-        )?;
-        Ok(Self { raw_bitmap })
+        // let raw_bitmap = pd_func_caller!(
+        //     (*Graphics::get_ptr()).transformedBitmap,
+        //     self.raw_bitmap,
+        //     rotation,
+        //     scale.x,
+        //     scale.y,
+        //     core::ptr::null_mut(),
+        // )?;
+        // Ok(Self { raw_bitmap })
+        todo!();
     }
 
     pub fn into_color(&self, bitmap: Bitmap, top_left: Point2D<i32>) -> Result<LCDColor, Error> {
@@ -466,7 +467,7 @@ impl Graphics {
     }
 
     pub fn get_framebuffer_bitmap(&self) -> Result<Bitmap, Error> {
-        let raw_bitmap = pd_func_caller!((*self.0).getFrameBufferBitmap)?;
+        let raw_bitmap = pd_func_caller!((*self.0).copyFrameBufferBitmap)?;
         anyhow::ensure!(
             raw_bitmap != ptr::null_mut(),
             "Null pointer returned from getFrameBufferBitmap"
