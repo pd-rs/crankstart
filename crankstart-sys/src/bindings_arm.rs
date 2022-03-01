@@ -93,57 +93,6 @@ pub type __uint32_t = ctypes::c_uint;
 pub type __uintptr_t = ctypes::c_uint;
 pub type size_t = ctypes::c_uint;
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq)]
-pub struct PDRect {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-}
-#[test]
-fn bindgen_test_layout_PDRect() {
-    assert_eq!(
-        ::core::mem::size_of::<PDRect>(),
-        16usize,
-        concat!("Size of: ", stringify!(PDRect))
-    );
-    assert_eq!(
-        ::core::mem::align_of::<PDRect>(),
-        4usize,
-        concat!("Alignment of ", stringify!(PDRect))
-    );
-    assert_eq!(
-        unsafe { &(*(::core::ptr::null::<PDRect>())).x as *const _ as usize },
-        0usize,
-        concat!("Offset of field: ", stringify!(PDRect), "::", stringify!(x))
-    );
-    assert_eq!(
-        unsafe { &(*(::core::ptr::null::<PDRect>())).y as *const _ as usize },
-        4usize,
-        concat!("Offset of field: ", stringify!(PDRect), "::", stringify!(y))
-    );
-    assert_eq!(
-        unsafe { &(*(::core::ptr::null::<PDRect>())).width as *const _ as usize },
-        8usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(PDRect),
-            "::",
-            stringify!(width)
-        )
-    );
-    assert_eq!(
-        unsafe { &(*(::core::ptr::null::<PDRect>())).height as *const _ as usize },
-        12usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(PDRect),
-            "::",
-            stringify!(height)
-        )
-    );
-}
-#[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct LCDRect {
     pub left: ctypes::c_int,
@@ -204,36 +153,6 @@ fn bindgen_test_layout_LCDRect() {
         )
     );
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDBitmap {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDBitmapTable {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDFont {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDFontPage {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDFontGlyph {
-    _unused: [u8; 0],
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct LCDVideoPlayer {
-    _unused: [u8; 0],
-}
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum LCDBitmapDrawMode {
@@ -286,12 +205,34 @@ pub enum LCDPolygonFillRule {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct LCDSprite {
+pub struct LCDBitmap {
     _unused: [u8; 0],
 }
-pub type LCDSpriteDrawFunction = ::core::option::Option<
-    unsafe extern "C" fn(sprite: *mut LCDSprite, bounds: PDRect, frame: *mut u8, drawrect: LCDRect),
->;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDBitmapTable {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDFont {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDFontPage {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDFontGlyph {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDVideoPlayer {
+    _unused: [u8; 0],
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_video {
@@ -698,12 +639,19 @@ pub struct playdate_graphics {
             yscale: f32,
         ),
     >,
+    pub setTextLeading:
+        ::core::option::Option<unsafe extern "C" fn(lineHeightAdustment: ctypes::c_int)>,
+    pub setBitmapMask: ::core::option::Option<
+        unsafe extern "C" fn(bitmap: *mut LCDBitmap, mask: *mut LCDBitmap) -> ctypes::c_int,
+    >,
+    pub getBitmapMask:
+        ::core::option::Option<unsafe extern "C" fn(bitmap: *mut LCDBitmap) -> *mut LCDBitmap>,
 }
 #[test]
 fn bindgen_test_layout_playdate_graphics() {
     assert_eq!(
         ::core::mem::size_of::<playdate_graphics>(),
-        216usize,
+        228usize,
         concat!("Size of: ", stringify!(playdate_graphics))
     );
     assert_eq!(
@@ -1303,6 +1251,42 @@ fn bindgen_test_layout_playdate_graphics() {
             stringify!(drawRotatedBitmap)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).setTextLeading as *const _ as usize
+        },
+        216usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(setTextLeading)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).setBitmapMask as *const _ as usize
+        },
+        220usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(setBitmapMask)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).getBitmapMask as *const _ as usize
+        },
+        224usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(getBitmapMask)
+        )
+    );
 }
 impl Default for playdate_graphics {
     fn default() -> Self {
@@ -1312,11 +1296,6 @@ impl Default for playdate_graphics {
             s.assume_init()
         }
     }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct PDMenuItem {
-    _unused: [u8; 0],
 }
 impl PDButtons {
     pub const kButtonLeft: PDButtons = PDButtons(1);
@@ -1371,6 +1350,11 @@ pub enum PDLanguage {
     kPDLanguageEnglish = 0,
     kPDLanguageJapanese = 1,
     kPDLanguageUnknown = 2,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PDMenuItem {
+    _unused: [u8; 0],
 }
 #[repr(u16)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -2003,6 +1987,11 @@ pub struct LuaUDObject {
     _unused: [u8; 0],
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct LCDSprite {
+    _unused: [u8; 0],
+}
+#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct lua_reg {
     pub name: *const ctypes::c_char,
@@ -2116,9 +2105,9 @@ pub struct playdate_lua {
     pub pushBool: ::core::option::Option<unsafe extern "C" fn(val: ctypes::c_int)>,
     pub pushInt: ::core::option::Option<unsafe extern "C" fn(val: ctypes::c_int)>,
     pub pushFloat: ::core::option::Option<unsafe extern "C" fn(val: f32)>,
-    pub pushString: ::core::option::Option<unsafe extern "C" fn(str_: *mut ctypes::c_char)>,
+    pub pushString: ::core::option::Option<unsafe extern "C" fn(str_: *const ctypes::c_char)>,
     pub pushBytes:
-        ::core::option::Option<unsafe extern "C" fn(str_: *mut ctypes::c_char, len: size_t)>,
+        ::core::option::Option<unsafe extern "C" fn(str_: *const ctypes::c_char, len: size_t)>,
     pub pushBitmap: ::core::option::Option<unsafe extern "C" fn(bitmap: *mut LCDBitmap)>,
     pub pushSprite: ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite)>,
     pub pushObject: ::core::option::Option<
@@ -2817,7 +2806,7 @@ impl Default for json_decoder {
 pub struct json_reader {
     pub read: ::core::option::Option<
         unsafe extern "C" fn(
-            readud: *mut ctypes::c_void,
+            userdata: *mut ctypes::c_void,
             buf: *mut u8,
             bufsize: ctypes::c_int,
         ) -> ctypes::c_int,
@@ -3569,6 +3558,57 @@ pub enum SpriteCollisionResponseType {
 }
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+pub struct PDRect {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+#[test]
+fn bindgen_test_layout_PDRect() {
+    assert_eq!(
+        ::core::mem::size_of::<PDRect>(),
+        16usize,
+        concat!("Size of: ", stringify!(PDRect))
+    );
+    assert_eq!(
+        ::core::mem::align_of::<PDRect>(),
+        4usize,
+        concat!("Alignment of ", stringify!(PDRect))
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<PDRect>())).x as *const _ as usize },
+        0usize,
+        concat!("Offset of field: ", stringify!(PDRect), "::", stringify!(x))
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<PDRect>())).y as *const _ as usize },
+        4usize,
+        concat!("Offset of field: ", stringify!(PDRect), "::", stringify!(y))
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<PDRect>())).width as *const _ as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(PDRect),
+            "::",
+            stringify!(width)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<PDRect>())).height as *const _ as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(PDRect),
+            "::",
+            stringify!(height)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct CollisionPoint {
     pub x: f32,
     pub y: f32,
@@ -3864,6 +3904,9 @@ impl Default for SpriteQueryInfo {
         }
     }
 }
+pub type LCDSpriteDrawFunction = ::core::option::Option<
+    unsafe extern "C" fn(sprite: *mut LCDSprite, bounds: PDRect, drawrect: PDRect),
+>;
 pub type LCDSpriteUpdateFunction =
     ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite)>;
 pub type LCDSpriteCollisionFilterProc = ::core::option::Option<
@@ -5907,7 +5950,7 @@ pub type synthNoteOnFunc = ::core::option::Option<
     unsafe extern "C" fn(userdata: *mut ctypes::c_void, note: MIDINote, velocity: f32, len: f32),
 >;
 pub type synthReleaseFunc = ::core::option::Option<
-    unsafe extern "C" fn(userdata: *mut ctypes::c_void, ended: ctypes::c_int),
+    unsafe extern "C" fn(userdata: *mut ctypes::c_void, stop: ctypes::c_int),
 >;
 pub type synthSetParameterFunc = ::core::option::Option<
     unsafe extern "C" fn(userdata: *mut ctypes::c_void, parameter: u8, value: f32) -> ctypes::c_int,
@@ -9506,10 +9549,3 @@ pub enum PDSystemEvent {
     kEventKeyReleased = 8,
     kEventLowPower = 9,
 }
-pub type PDEventHandler = ::core::option::Option<
-    unsafe extern "C" fn(
-        playdate: *mut PlaydateAPI,
-        event: PDSystemEvent,
-        arg: u32,
-    ) -> ctypes::c_int,
->;

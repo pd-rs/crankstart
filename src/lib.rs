@@ -98,7 +98,7 @@ pub trait Game {
         &self,
         sprite: &Sprite,
         bounds: &PDRect,
-        draw_rect: &LCDRect,
+        draw_rect: &PDRect,
         playdate: &Playdate,
     ) -> Result<(), Error> {
         Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method", sprite))
@@ -175,8 +175,7 @@ impl<T: 'static + Game> GameRunner<T> {
         &mut self,
         sprite: *mut LCDSprite,
         bounds: PDRect,
-        frame: *mut u8,
-        draw_rect: LCDRect,
+        draw_rect: PDRect,
     ) {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
@@ -224,11 +223,10 @@ macro_rules! crankstart_game {
             extern "C" fn sprite_draw(
                 sprite: *mut LCDSprite,
                 bounds: PDRect,
-                frame: *mut u8,
-                drawrect: LCDRect,
+                drawrect: PDRect,
             ) {
                 let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
-                game_runner.draw_sprite(sprite, bounds, frame, drawrect);
+                game_runner.draw_sprite(sprite, bounds, drawrect);
             }
 
             extern "C" fn update(_user_data: *mut core::ffi::c_void) -> i32 {
