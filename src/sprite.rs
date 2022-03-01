@@ -31,8 +31,7 @@ pub type SpriteUpdateFunction = unsafe extern "C" fn(sprite: *mut crankstart_sys
 pub type SpriteDrawFunction = unsafe extern "C" fn(
     sprite: *mut crankstart_sys::LCDSprite,
     bounds: PDRect,
-    frame: *mut u8,
-    drawrect: LCDRect,
+    drawrect: PDRect,
 );
 pub type SpriteCollideFunction = unsafe extern "C" fn(
     sprite: *const crankstart_sys::LCDSprite,

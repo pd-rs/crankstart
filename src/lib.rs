@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(alloc_error_handler, core_intrinsics)]
+#![feature(lang_items, alloc_error_handler, core_intrinsics)]
 #![allow(unused_variables, dead_code, unused_imports)]
 
 extern crate alloc;
@@ -91,17 +91,17 @@ macro_rules! pd_func_caller_log {
 
 pub trait Game {
     fn update_sprite(&mut self, sprite: &mut Sprite, playdate: &mut Playdate) -> Result<(), Error> {
-        Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method"))
+        Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method", sprite))
     }
 
     fn draw_sprite(
         &self,
         sprite: &Sprite,
         bounds: &PDRect,
-        draw_rect: &LCDRect,
+        draw_rect: &PDRect,
         playdate: &Playdate,
     ) -> Result<(), Error> {
-        Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method"))
+        Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method", sprite))
     }
 
     fn update(&mut self, playdate: &mut Playdate) -> Result<(), Error>;
@@ -175,8 +175,7 @@ impl<T: 'static + Game> GameRunner<T> {
         &mut self,
         sprite: *mut LCDSprite,
         bounds: PDRect,
-        frame: *mut u8,
-        draw_rect: LCDRect,
+        draw_rect: PDRect,
     ) {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
@@ -224,11 +223,10 @@ macro_rules! crankstart_game {
             extern "C" fn sprite_draw(
                 sprite: *mut LCDSprite,
                 bounds: PDRect,
-                frame: *mut u8,
-                drawrect: LCDRect,
+                drawrect: PDRect,
             ) {
                 let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
-                game_runner.draw_sprite(sprite, bounds, frame, drawrect);
+                game_runner.draw_sprite(sprite, bounds, drawrect);
             }
 
             extern "C" fn update(_user_data: *mut core::ffi::c_void) -> i32 {
@@ -428,3 +426,61 @@ pub unsafe extern "C" fn memset(s: *mut u8, c: crankstart_sys::ctypes::c_int, n:
 pub unsafe extern "C" fn __bzero(s: *mut u8, n: usize) {
     memset_internal(s, 0, n);
 }
+
+#[no_mangle]
+pub extern "C" fn _sbrk() {}
+
+#[no_mangle]
+pub extern "C" fn _write() {}
+
+#[no_mangle]
+pub extern "C" fn _close() {}
+
+#[no_mangle]
+pub extern "C" fn _lseek() {}
+
+#[no_mangle]
+pub extern "C" fn _read() {}
+
+#[no_mangle]
+pub extern "C" fn _fstat() {}
+
+#[no_mangle]
+pub extern "C" fn _isatty() {}
+
+#[no_mangle]
+pub extern "C" fn _exit() {}
+
+#[no_mangle]
+pub extern "C" fn _open() {}
+
+#[no_mangle]
+pub extern "C" fn _kill() {}
+
+#[no_mangle]
+pub extern "C" fn _getpid() {}
+
+#[no_mangle]
+pub extern "C" fn rust_eh_personality() {
+    unimplemented!();
+}
+
+#[cfg(target_os = "macos")]
+#[no_mangle]
+extern "C" fn _Unwind_Resume() {
+    unimplemented!();
+}
+
+#[no_mangle]
+extern "C" fn __exidx_start() {
+    unimplemented!();
+}
+
+#[no_mangle]
+extern "C" fn __exidx_end() {
+    unimplemented!();
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "System")]
+extern "C" {}
