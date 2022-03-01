@@ -8,7 +8,7 @@ use {
     crankstart::{
         crankstart_game,
         geometry::{ScreenPoint, ScreenVector},
-        graphics::{Font, Graphics, LCDColor, LCDSolidColor},
+        graphics::{Graphics, LCDColor, LCDSolidColor},
         system::System,
         Game, Playdate,
     },
@@ -19,16 +19,12 @@ use {
 struct State {
     location: ScreenPoint,
     velocity: ScreenVector,
-    font: Font,
 }
 
 impl State {
     pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
-        let graphics = Graphics::get();
         crankstart::display::Display::get().set_refresh_rate(20.0)?;
-        let font = graphics.load_font("/System/Fonts/Asheville-Sans-14-Bold.pft")?;
         Ok(Box::new(Self {
-            font: font,
             location: point2(INITIAL_X, INITIAL_Y),
             velocity: vec2(1, 2),
         }))
@@ -39,10 +35,7 @@ impl Game for State {
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
         let graphics = Graphics::get();
         graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
-        graphics.draw_text(
-            "Hello World Rust",
-            self.location,
-        )?;
+        graphics.draw_text("Hello World Rust", self.location)?;
 
         self.location += self.velocity;
 

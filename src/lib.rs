@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(alloc_error_handler, core_intrinsics)]
+#![feature(lang_items, alloc_error_handler, core_intrinsics)]
 #![allow(unused_variables, dead_code, unused_imports)]
 
 extern crate alloc;
@@ -91,7 +91,7 @@ macro_rules! pd_func_caller_log {
 
 pub trait Game {
     fn update_sprite(&mut self, sprite: &mut Sprite, playdate: &mut Playdate) -> Result<(), Error> {
-        Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method"))
+        Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method", sprite))
     }
 
     fn draw_sprite(
@@ -101,7 +101,7 @@ pub trait Game {
         draw_rect: &LCDRect,
         playdate: &Playdate,
     ) -> Result<(), Error> {
-        Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method"))
+        Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method", sprite))
     }
 
     fn update(&mut self, playdate: &mut Playdate) -> Result<(), Error>;
@@ -461,3 +461,28 @@ pub extern "C" fn _kill() {}
 
 #[no_mangle]
 pub extern "C" fn _getpid() {}
+
+#[no_mangle]
+pub extern "C" fn rust_eh_personality() {
+    unimplemented!();
+}
+
+#[cfg(target_os = "macos")]
+#[no_mangle]
+extern "C" fn _Unwind_Resume() {
+    unimplemented!();
+}
+
+#[no_mangle]
+extern "C" fn __exidx_start() {
+    unimplemented!();
+}
+
+#[no_mangle]
+extern "C" fn __exidx_end() {
+    unimplemented!();
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "System")]
+extern "C" {}

@@ -7,10 +7,7 @@ use {
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        graphics::{
-            rect_make, Bitmap, BitmapData, Graphics, LCDBitmapDrawMode, LCDBitmapFlip, LCDRect,
-            PDRect,
-        },
+        graphics::{rect_make, Bitmap, BitmapData, Graphics, LCDBitmapFlip, LCDRect, PDRect},
         log_to_console,
         sprite::{Sprite, SpriteCollider, SpriteManager},
         system::{PDButtons, System},
@@ -84,32 +81,16 @@ impl BackgroundHandler {
         if self.y > self.height {
             self.y = 0;
         }
-        sprite.set_needs_redraw()?;
+        sprite.mark_dirty()?;
         Ok(())
     }
 
     fn draw(&self) -> Result<(), Error> {
-        let r = LCDRect {
-            left: 0,
-            right: 400,
-            top: 0,
-            bottom: 240,
-        };
+        self.background_image
+            .draw(point2(0, self.y), LCDBitmapFlip::kBitmapUnflipped)?;
         self.background_image.draw(
-            None,
-            None,
-            point2(0, self.y),
-            LCDBitmapDrawMode::kDrawModeCopy,
-            LCDBitmapFlip::kBitmapUnflipped,
-            r,
-        )?;
-        self.background_image.draw(
-            None,
-            None,
             point2(0, self.y - self.height),
-            LCDBitmapDrawMode::kDrawModeCopy,
             LCDBitmapFlip::kBitmapUnflipped,
-            r,
         )?;
         Ok(())
     }
