@@ -40,6 +40,8 @@ pub mod ctypes {
 include!("bindings_macos_x86.rs");
 #[cfg(all(target_os = "macos", any(target_arch = "aarch64", target_arch = "arm")))]
 include!("bindings_macos_aarch64.rs");
+#[cfg(not(target_os = "macos"))]
+include!("bindings_playdate.rs");
 
 impl From<euclid::default::Rect<i32>> for LCDRect {
     fn from(r: euclid::default::Rect<i32>) -> Self {
