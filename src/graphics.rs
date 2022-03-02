@@ -647,6 +647,11 @@ impl Graphics {
         Font::new(font)
     }
 
+    pub fn set_font(&self, font: &Font) -> Result<(), Error> {
+        pd_func_caller_log!((*self.0).setFont, font.0);
+        Ok(())
+    }
+
     pub fn draw_text(&self, text: &str, position: ScreenPoint) -> Result<i32, Error> {
         let c_text = CString::new(text).map_err(Error::msg)?;
         pd_func_caller!(
