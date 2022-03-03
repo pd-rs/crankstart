@@ -430,15 +430,19 @@ pub unsafe extern "C" fn __bzero(s: *mut u8, n: usize) {
 #[no_mangle]
 pub extern "C" fn _sbrk() {}
 
+#[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _write() {}
 
+#[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _close() {}
 
+#[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _lseek() {}
 
+#[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _read() {}
 
@@ -448,6 +452,7 @@ pub extern "C" fn _fstat() {}
 #[no_mangle]
 pub extern "C" fn _isatty() {}
 
+#[cfg(not(target_os = "windows"))]
 #[no_mangle]
 pub extern "C" fn _exit() {}
 
