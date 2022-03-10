@@ -14,10 +14,10 @@ From the crankstart directory where you found this README,
 
 Should launch the simulator and load in the hello_world sample.
 
-If you have a device attached to your Mac,
+If you have a device attached to your desktop,
 
-    crank build --release --example hello_world --device
+    crank run --release --example hello_world --device
 
-Should load but not launch the hello_world sample on the device.
+Should launch the hello_world sample on the device.
 
 For the sprite_game example one needs to copy the images folder from `"PlaydateSDK/C_API/Examples/Sprite Game/Source/images"` to `"sprite_game_images"`.
