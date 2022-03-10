@@ -10,7 +10,7 @@ To use this crate, you'll also need to install the [crank command line tool](htt
 
 From the crankstart directory where you found this README,
 
-    crank build --release --example hello_world
+    crank run --release --example hello_world
 
 Should launch the simulator and load in the hello_world sample.
 
