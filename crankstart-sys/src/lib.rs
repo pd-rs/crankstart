@@ -46,7 +46,7 @@ pub mod ctypes {
     pub type c_ushort = u16;
     pub type c_short = i16;
     pub type c_void = core::ffi::c_void;
-    pub type realloc_size = u64;
+    pub type realloc_size = u32;
 }
 
 #[cfg(all(target_os = "windows", target_feature = "crt-static"))]
