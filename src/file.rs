@@ -10,6 +10,20 @@ use {
 
 pub use crankstart_sys::FileStat;
 
+fn ensure_filesystem_success (result: i32, function_name: &str) -> Result<(), Error> {
+    if result < 0 {
+        let file_sys = FileSystem::get();
+        let err_result = pd_func_caller!(
+            (*file_sys.0).geterr
+        )?;
+        let err_string = unsafe { CStr::from_ptr(err_result) };
+
+        Err(Error::msg(
+            format!("Error {} from {}: {:?}", result, function_name, err_string)
+        ))
+    } else { Ok(()) }
+}
+
 #[derive(Clone, Debug)]
 pub struct FileSystem(*const crankstart_sys::playdate_file);
 
@@ -45,7 +59,7 @@ impl FileSystem {
             Some(list_files_callback),
             files_ptr as *mut core::ffi::c_void,
         )?;
-        ensure!(result >= 0, "Error: {} from listfiles", result);
+        ensure_filesystem_success(result, "listfiles")?;
         Ok(*files)
     }
 
@@ -53,21 +67,21 @@ impl FileSystem {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut file_stat = FileStat::default();
         let result = pd_func_caller!((*self.0).stat, c_path.as_ptr(), &mut file_stat)?;
-        ensure!(result == 0, "Error: {} from stat", result);
+        ensure_filesystem_success(result, "stat")?;
         Ok(file_stat)
     }
 
     pub fn mkdir(&self, path: &str) -> Result<(), Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let result = pd_func_caller!((*self.0).mkdir, c_path.as_ptr())?;
-        ensure!(result == 0, "Error: {} from mkdir", result);
+        ensure_filesystem_success(result, "mkdir")?;
         Ok(())
     }
 
     pub fn unlink(&self, path: &str, recursive: bool) -> Result<(), Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let result = pd_func_caller!((*self.0).unlink, c_path.as_ptr(), recursive as i32)?;
-        ensure!(result == 0, "Error: {} from unlink", result);
+        ensure_filesystem_success(result, "unlink")?;
         Ok(())
     }
 
@@ -75,7 +89,7 @@ impl FileSystem {
         let c_from_path = CString::new(from_path).map_err(Error::msg)?;
         let c_to_path = CString::new(to_path).map_err(Error::msg)?;
         let result = pd_func_caller!((*self.0).rename, c_from_path.as_ptr(), c_to_path.as_ptr())?;
-        ensure!(result == 0, "Error: {} from rename", result);
+        ensure_filesystem_success(result, "rename")?;
         Ok(())
     }
 
@@ -118,7 +132,7 @@ impl File {
             buf.as_mut_ptr() as *mut core::ffi::c_void,
             buf.len() as u32
         )?;
-        ensure!(result >= 0, "Error {} from read", result);
+        ensure_filesystem_success(result, "read")?;
         Ok(result as usize)
     }
 
@@ -131,7 +145,7 @@ impl File {
             buf.as_ptr() as *mut core::ffi::c_void,
             buf.len() as u32
         )?;
-        ensure!(result >= 0, "Error {} from write", result);
+        ensure_filesystem_success(result, "write")?;
         Ok(result as usize)
     }
 
@@ -139,7 +153,7 @@ impl File {
         let file_sys = FileSystem::get();
         let sd_file = self.0;
         let result = pd_func_caller!((*file_sys.0).flush, sd_file)?;
-        ensure!(result >= 0, "Error {} from flush", result);
+        ensure_filesystem_success(result, "flush")?;
         Ok(())
     }
 
@@ -147,7 +161,7 @@ impl File {
         let file_sys = FileSystem::get();
         let sd_file = self.0;
         let result = pd_func_caller!((*file_sys.0).tell, sd_file)?;
-        ensure!(result >= 0, "Error {} from tell", result);
+        ensure_filesystem_success(result, "tell")?;
         Ok(result)
     }
 
@@ -155,7 +169,7 @@ impl File {
         let file_sys = FileSystem::get();
         let sd_file = self.0;
         let result = pd_func_caller!((*file_sys.0).seek, sd_file, pos, whence as i32)?;
-        ensure!(result >= 0, "Error {} from write", result);
+        ensure_filesystem_success(result, "seek")?;
         Ok(())
     }
 }
