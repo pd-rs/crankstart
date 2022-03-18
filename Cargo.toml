@@ -53,7 +53,7 @@ rand = { version = "0.8.4", default-features = false, features = [ "alloc" ] }
 rand_pcg = "0.3.1"
 
 [dependencies.cstr_core]
-version = "0.2"
+version = "=0.1.2"
 default-features = false
 features = [ "alloc" ]
 
