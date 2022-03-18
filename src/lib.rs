@@ -91,6 +91,7 @@ macro_rules! pd_func_caller_log {
 
 pub trait Game {
     fn update_sprite(&mut self, sprite: &mut Sprite, playdate: &mut Playdate) -> Result<(), Error> {
+        use alloc::format;
         Err(anyhow::anyhow!("Error: sprite {:?} needs update but this game hasn't implemented the update_sprite trait method", sprite))
     }
 
@@ -101,6 +102,7 @@ pub trait Game {
         draw_rect: &PDRect,
         playdate: &Playdate,
     ) -> Result<(), Error> {
+        use alloc::format;
         Err(anyhow::anyhow!("Error: sprite {:?} needs to draw but this game hasn't implemented the draw_sprite trait method", sprite))
     }
 
