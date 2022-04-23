@@ -1,4 +1,11 @@
 [[target]]
+    name = "hello_world"
+
+    [target.metadata]
+    name = "Hello World"
+    version = "0.1.0"
+
+[[target]]
     name = "sprite_game"
     assets = [
         "sprite_game_images/background.png",
