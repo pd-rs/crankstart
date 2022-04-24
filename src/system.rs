@@ -83,6 +83,14 @@ impl System {
         Ok(pd_func_caller!((*self.0).getCurrentTimeMilliseconds)? as usize)
     }
 
+    pub fn reset_elapsed_time(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).resetElapsedTime)
+    }
+
+    pub fn get_elapsed_time(&self) -> Result<f32, Error> {
+        Ok(pd_func_caller!((*self.0).getElapsedTime)? as f32)
+    }
+
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).drawFPS, x, y)
     }
