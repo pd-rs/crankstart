@@ -8,6 +8,7 @@ use {
 };
 
 pub use crankstart_sys::PDButtons;
+pub use crankstart_sys::PDMenuItem;
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
@@ -34,6 +35,11 @@ impl System {
 
     pub fn set_update_callback(&self, f: crankstart_sys::PDCallbackFunction) -> Result<(), Error> {
         pd_func_caller!((*self.0).setUpdateCallback, f, ptr::null_mut())
+    }
+
+    pub fn add_menu_item(&self, title: &str, f: crankstart_sys::PDMenuItemCallbackFunction) -> Result<*mut PDMenuItem, Error> {
+        let c_title = CString::new(title).map_err(Error::msg)?;
+        pd_func_caller!((*self.0).addMenuItem, c_title.as_ptr(), f, ptr::null_mut())
     }
 
     pub fn get_button_state(&self) -> Result<(PDButtons, PDButtons, PDButtons), Error> {
@@ -81,6 +87,14 @@ impl System {
 
     pub fn get_current_time_milliseconds(&self) -> Result<usize, Error> {
         Ok(pd_func_caller!((*self.0).getCurrentTimeMilliseconds)? as usize)
+    }
+
+    pub fn reset_elapsed_time(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).resetElapsedTime)
+    }
+
+    pub fn get_elapsed_time(&self) -> Result<f32, Error> {
+        Ok(pd_func_caller!((*self.0).getElapsedTime)? as f32)
     }
 
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {
