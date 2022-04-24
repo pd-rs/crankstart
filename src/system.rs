@@ -8,6 +8,7 @@ use {
 };
 
 pub use crankstart_sys::PDButtons;
+pub use crankstart_sys::PDMenuItem;
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
@@ -34,6 +35,11 @@ impl System {
 
     pub fn set_update_callback(&self, f: crankstart_sys::PDCallbackFunction) -> Result<(), Error> {
         pd_func_caller!((*self.0).setUpdateCallback, f, ptr::null_mut())
+    }
+
+    pub fn add_menu_item(&self, title: &str, f: crankstart_sys::PDMenuItemCallbackFunction) -> Result<*mut PDMenuItem, Error> {
+        let c_title = CString::new(title).map_err(Error::msg)?;
+        pd_func_caller!((*self.0).addMenuItem, c_title.as_ptr(), f, ptr::null_mut())
     }
 
     pub fn get_button_state(&self) -> Result<(PDButtons, PDButtons, PDButtons), Error> {
