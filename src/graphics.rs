@@ -415,6 +415,10 @@ impl Graphics {
         Self::get().0
     }
 
+    pub fn set_draw_mode(&self, draw_mode: LCDBitmapDrawMode) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setDrawMode, draw_mode)
+    }
+
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getFrame)?;
         anyhow::ensure!(
