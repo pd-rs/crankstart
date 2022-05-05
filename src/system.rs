@@ -7,6 +7,7 @@ use {
     cstr_core::CString,
 };
 
+use crankstart_sys::ctypes::c_int;
 pub use crankstart_sys::PDButtons;
 
 static mut SYSTEM: System = System(ptr::null_mut());
@@ -47,6 +48,14 @@ impl System {
             &mut released
         )?;
         Ok((current, pushed, released))
+    }
+
+    pub fn is_crank_docked(&self) -> Result<bool, Error> {
+        let docked: bool = pd_func_caller!((*self.0).isCrankDocked)? != 0;
+        Ok(docked)
+    }
+    pub fn get_crank_angle(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getCrankAngle,)
     }
 
     pub fn get_crank_change(&self) -> Result<f32, Error> {
