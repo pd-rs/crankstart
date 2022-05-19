@@ -10,18 +10,19 @@ use {
 
 pub use crankstart_sys::FileStat;
 
-fn ensure_filesystem_success (result: i32, function_name: &str) -> Result<(), Error> {
+fn ensure_filesystem_success(result: i32, function_name: &str) -> Result<(), Error> {
     if result < 0 {
         let file_sys = FileSystem::get();
-        let err_result = pd_func_caller!(
-            (*file_sys.0).geterr
-        )?;
+        let err_result = pd_func_caller!((*file_sys.0).geterr)?;
         let err_string = unsafe { CStr::from_ptr(err_result) };
 
-        Err(Error::msg(
-            format!("Error {} from {}: {:?}", result, function_name, err_string)
-        ))
-    } else { Ok(()) }
+        Err(Error::msg(format!(
+            "Error {} from {}: {:?}",
+            result, function_name, err_string
+        )))
+    } else {
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -96,6 +97,12 @@ impl FileSystem {
     pub fn open(&self, path: &str, options: FileOptions) -> Result<File, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let raw_file = pd_func_caller!((*self.0).open, c_path.as_ptr(), options)?;
+        ensure!(
+            raw_file != ptr::null_mut(),
+            "Failed to open file at {} with options {:?}",
+            path,
+            options
+        );
         Ok(File(raw_file))
     }
 
