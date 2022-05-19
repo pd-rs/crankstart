@@ -646,12 +646,14 @@ pub struct playdate_graphics {
     >,
     pub getBitmapMask:
         ::core::option::Option<unsafe extern "C" fn(bitmap: *mut LCDBitmap) -> *mut LCDBitmap>,
+    pub setStencilImage:
+        ::core::option::Option<unsafe extern "C" fn(stencil: *mut LCDBitmap, tile: ctypes::c_int)>,
 }
 #[test]
 fn bindgen_test_layout_playdate_graphics() {
     assert_eq!(
         ::core::mem::size_of::<playdate_graphics>(),
-        228usize,
+        232usize,
         concat!("Size of: ", stringify!(playdate_graphics))
     );
     assert_eq!(
@@ -1287,6 +1289,18 @@ fn bindgen_test_layout_playdate_graphics() {
             stringify!(getBitmapMask)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_graphics>())).setStencilImage as *const _ as usize
+        },
+        228usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(setStencilImage)
+        )
+    );
 }
 impl Default for playdate_graphics {
     fn default() -> Self {
@@ -1409,7 +1423,7 @@ pub struct playdate_sys {
     pub setCrankSoundsDisabled:
         ::core::option::Option<unsafe extern "C" fn(flag: ctypes::c_int) -> ctypes::c_int>,
     pub getFlipped: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
-    pub setAutoLockDisabled: ::core::option::Option<unsafe extern "C" fn(enable: ctypes::c_int)>,
+    pub setAutoLockDisabled: ::core::option::Option<unsafe extern "C" fn(disable: ctypes::c_int)>,
     pub setMenuImage: ::core::option::Option<
         unsafe extern "C" fn(bitmap: *mut LCDBitmap, xOffset: ctypes::c_int),
     >,
@@ -4072,12 +4086,15 @@ pub struct playdate_sprite {
     >,
     pub getUserdata:
         ::core::option::Option<unsafe extern "C" fn(sprite: *mut LCDSprite) -> *mut ctypes::c_void>,
+    pub setStencilImage: ::core::option::Option<
+        unsafe extern "C" fn(sprite: *mut LCDSprite, stencil: *mut LCDBitmap, tile: ctypes::c_int),
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_sprite() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sprite>(),
-        240usize,
+        244usize,
         concat!("Size of: ", stringify!(playdate_sprite))
     );
     assert_eq!(
@@ -4733,6 +4750,18 @@ fn bindgen_test_layout_playdate_sprite() {
             stringify!(getUserdata)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sprite>())).setStencilImage as *const _ as usize
+        },
+        240usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sprite),
+            "::",
+            stringify!(setStencilImage)
+        )
+    );
 }
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -4837,7 +4866,7 @@ pub struct playdate_sound_fileplayer {
     pub newPlayer: ::core::option::Option<unsafe extern "C" fn() -> *mut FilePlayer>,
     pub freePlayer: ::core::option::Option<unsafe extern "C" fn(player: *mut FilePlayer)>,
     pub loadIntoPlayer: ::core::option::Option<
-        unsafe extern "C" fn(player: *mut FilePlayer, path: *const ctypes::c_char),
+        unsafe extern "C" fn(player: *mut FilePlayer, path: *const ctypes::c_char) -> ctypes::c_int,
     >,
     pub setBufferLength:
         ::core::option::Option<unsafe extern "C" fn(player: *mut FilePlayer, bufferLen: f32)>,
@@ -5627,12 +5656,14 @@ pub struct playdate_sound_lfo {
     pub setRetrigger:
         ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO, flag: ctypes::c_int)>,
     pub getValue: ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO) -> f32>,
+    pub setGlobal:
+        ::core::option::Option<unsafe extern "C" fn(lfo: *mut PDSynthLFO, global: ctypes::c_int)>,
 }
 #[test]
 fn bindgen_test_layout_playdate_sound_lfo() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sound_lfo>(),
-        48usize,
+        52usize,
         concat!("Size of: ", stringify!(playdate_sound_lfo))
     );
     assert_eq!(
@@ -5762,6 +5793,16 @@ fn bindgen_test_layout_playdate_sound_lfo() {
             stringify!(playdate_sound_lfo),
             "::",
             stringify!(getValue)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<playdate_sound_lfo>())).setGlobal as *const _ as usize },
+        48usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_lfo),
+            "::",
+            stringify!(setGlobal)
         )
     );
 }
@@ -6745,12 +6786,19 @@ pub struct playdate_sound_track {
             outVelocity: *mut f32,
         ) -> ctypes::c_int,
     >,
+    pub getSignalForController: ::core::option::Option<
+        unsafe extern "C" fn(
+            track: *mut SequenceTrack,
+            controller: ctypes::c_int,
+            create: ctypes::c_int,
+        ) -> *mut ControlSignal,
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_sound_track() {
     assert_eq!(
         ::core::mem::size_of::<playdate_sound_track>(),
-        64usize,
+        68usize,
         concat!("Size of: ", stringify!(playdate_sound_track))
     );
     assert_eq!(
@@ -6942,6 +6990,19 @@ fn bindgen_test_layout_playdate_sound_track() {
             stringify!(playdate_sound_track),
             "::",
             stringify!(getNoteAtIndex)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::core::ptr::null::<playdate_sound_track>())).getSignalForController as *const _
+                as usize
+        },
+        64usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_track),
+            "::",
+            stringify!(getSignalForController)
         )
     );
 }
