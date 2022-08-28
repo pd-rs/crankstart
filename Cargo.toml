@@ -1,8 +1,11 @@
 [package]
 name = "crankstart"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Rob Tsuk <rob@tsuk.com>"]
 edition = "2018"
+description = "A barely functional, wildly incomplete and basically undocumented Rust crate whose aim is to let you write games for the [Playdate handheld gaming system](https://play.date) in [Rust](https://www.rust-lang.org)."
+license = "MIT"
+repository = "https://github.com/pd-rs/crankstart"
 
 [package.metadata.cargo-xbuild]
 memcpy = false
@@ -44,7 +47,7 @@ anyhow = { version = "1.0.31", default-features = false }
 euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
 hashbrown = "0.7.2"
 heapless = "0.5.5"
-crankstart-sys = { path = "crankstart-sys" }
+crankstart-sys = { version = "0.1.1", path = "crankstart-sys" }
 
 [dev-dependencies]
 randomize = "3.0.1"
