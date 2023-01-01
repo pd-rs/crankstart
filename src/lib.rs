@@ -173,12 +173,7 @@ impl<T: 'static + Game> GameRunner<T> {
         }
     }
 
-    pub fn draw_sprite(
-        &mut self,
-        sprite: *mut LCDSprite,
-        bounds: PDRect,
-        draw_rect: PDRect,
-    ) {
+    pub fn draw_sprite(&mut self, sprite: *mut LCDSprite, bounds: PDRect, draw_rect: PDRect) {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
                 match game.draw_sprite(&sprite, &bounds, &draw_rect, &self.playdate) {
@@ -222,11 +217,7 @@ macro_rules! crankstart_game {
                 game_runner.update_sprite(sprite);
             }
 
-            extern "C" fn sprite_draw(
-                sprite: *mut LCDSprite,
-                bounds: PDRect,
-                drawrect: PDRect,
-            ) {
+            extern "C" fn sprite_draw(sprite: *mut LCDSprite, bounds: PDRect, drawrect: PDRect) {
                 let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
                 game_runner.draw_sprite(sprite, bounds, drawrect);
             }
@@ -325,10 +316,7 @@ unsafe impl Sync for PlaydateAllocator {}
 unsafe impl GlobalAlloc for PlaydateAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let system = System::get();
-        system.realloc(
-            core::ptr::null_mut(),
-            layout.size() as crankstart_sys::ctypes::realloc_size,
-        ) as *mut u8
+        system.realloc(core::ptr::null_mut(), layout.size() as usize) as *mut u8
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
@@ -339,7 +327,7 @@ unsafe impl GlobalAlloc for PlaydateAllocator {
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
         System::get().realloc(
             ptr as *mut core::ffi::c_void,
-            new_size as crankstart_sys::ctypes::realloc_size,
+            new_size,
         ) as *mut u8
     }
 }

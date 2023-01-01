@@ -7,7 +7,7 @@ use {
     alloc::{format, rc::Rc},
     anyhow::{anyhow, ensure, Error},
     core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
-    crankstart_sys::{ctypes::c_int, size_t, LCDBitmapTable, LCDPattern},
+    crankstart_sys::{ctypes::c_int, LCDBitmapTable, LCDPattern},
     cstr_core::{CStr, CString},
     euclid::default::{Point2D, Vector2D},
     hashbrown::HashMap,
@@ -62,21 +62,21 @@ impl BitmapInner {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
-        let mut hasmask = 0;
+        let mut mask_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
             self.raw_bitmap,
             &mut width,
             &mut height,
             &mut rowbytes,
-            &mut hasmask,
+            &mut mask_ptr,
             ptr::null_mut(),
         )?;
         Ok(BitmapData {
             width,
             height,
             rowbytes,
-            hasmask: hasmask != 0,
+            hasmask: mask_ptr != ptr::null_mut(),
         })
     }
 
@@ -657,7 +657,7 @@ impl Graphics {
         pd_func_caller!(
             (*self.0).drawText,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as size_t,
+            text.len() as usize,
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
@@ -670,7 +670,7 @@ impl Graphics {
             (*self.0).getTextWidth,
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as size_t,
+            text.len() as usize,
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )

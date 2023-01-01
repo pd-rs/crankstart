@@ -1,9 +1,5 @@
 use {
-    crate::pd_func_caller,
-    alloc::format,
-    anyhow::Error,
-    core::ptr,
-    crankstart_sys::{ctypes::c_void, size_t},
+    crate::pd_func_caller, alloc::format, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
     cstr_core::CString,
 };
 
@@ -26,7 +22,7 @@ impl System {
         unsafe { SYSTEM.clone() }
     }
 
-    pub(crate) fn realloc(&self, ptr: *mut c_void, size: size_t) -> *mut c_void {
+    pub(crate) fn realloc(&self, ptr: *mut c_void, size: usize) -> *mut c_void {
         unsafe {
             let realloc_fn = (*self.0).realloc.expect("realloc");
             realloc_fn(ptr, size)

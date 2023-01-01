@@ -3,25 +3,26 @@ use {
     alloc::{boxed::Box, format, string::String, vec::Vec},
     anyhow::{ensure, Error},
     core::ptr,
-    crankstart_sys::{ctypes::c_void, size_t, FileOptions, PDButtons, SDFile},
+    crankstart_sys::{ctypes::c_void, FileOptions, PDButtons, SDFile},
     cstr_core::CStr,
     cstr_core::CString,
 };
 
 pub use crankstart_sys::FileStat;
 
-fn ensure_filesystem_success (result: i32, function_name: &str) -> Result<(), Error> {
+fn ensure_filesystem_success(result: i32, function_name: &str) -> Result<(), Error> {
     if result < 0 {
         let file_sys = FileSystem::get();
-        let err_result = pd_func_caller!(
-            (*file_sys.0).geterr
-        )?;
+        let err_result = pd_func_caller!((*file_sys.0).geterr)?;
         let err_string = unsafe { CStr::from_ptr(err_result) };
 
-        Err(Error::msg(
-            format!("Error {} from {}: {:?}", result, function_name, err_string)
-        ))
-    } else { Ok(()) }
+        Err(Error::msg(format!(
+            "Error {} from {}: {:?}",
+            result, function_name, err_string
+        )))
+    } else {
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -49,7 +50,7 @@ impl FileSystem {
         unsafe { FILE_SYSTEM.clone() }
     }
 
-    pub fn listfiles(&self, path: &str) -> Result<Vec<String>, Error> {
+    pub fn listfiles(&self, path: &str, show_invisible: bool) -> Result<Vec<String>, Error> {
         let mut files: Box<Vec<String>> = Box::new(Vec::new());
         let files_ptr: *mut Vec<String> = &mut *files;
         let c_path = CString::new(path).map_err(Error::msg)?;
@@ -58,6 +59,7 @@ impl FileSystem {
             c_path.as_ptr(),
             Some(list_files_callback),
             files_ptr as *mut core::ffi::c_void,
+            if show_invisible { 1 } else { 0 }
         )?;
         ensure_filesystem_success(result, "listfiles")?;
         Ok(*files)

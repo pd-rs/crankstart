@@ -28,11 +28,8 @@ use {
 pub use crankstart_sys::SpriteCollisionResponseType;
 
 pub type SpriteUpdateFunction = unsafe extern "C" fn(sprite: *mut crankstart_sys::LCDSprite);
-pub type SpriteDrawFunction = unsafe extern "C" fn(
-    sprite: *mut crankstart_sys::LCDSprite,
-    bounds: PDRect,
-    drawrect: PDRect,
-);
+pub type SpriteDrawFunction =
+    unsafe extern "C" fn(sprite: *mut crankstart_sys::LCDSprite, bounds: PDRect, drawrect: PDRect);
 pub type SpriteCollideFunction = unsafe extern "C" fn(
     sprite: *const crankstart_sys::LCDSprite,
     other: *const crankstart_sys::LCDSprite,
