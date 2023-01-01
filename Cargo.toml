@@ -14,7 +14,7 @@ panic_immediate_abort = false
 
 [profile.dev]
 panic = "abort"
-opt-level = 'z'
+opt-level = 2
 lto = true
 
 [profile.release]
