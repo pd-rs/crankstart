@@ -325,10 +325,7 @@ unsafe impl GlobalAlloc for PlaydateAllocator {
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
-        System::get().realloc(
-            ptr as *mut core::ffi::c_void,
-            new_size,
-        ) as *mut u8
+        System::get().realloc(ptr as *mut core::ffi::c_void, new_size) as *mut u8
     }
 }
 

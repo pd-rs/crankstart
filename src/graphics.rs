@@ -457,6 +457,10 @@ impl Graphics {
         pd_func_caller!((*self.0).setBackgroundColor, color.into())
     }
 
+    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setDrawMode, mode)
+    }
+
     pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
         let (start, end) = range.into_inner();
         pd_func_caller!((*self.0).markUpdatedRows, start, end)
