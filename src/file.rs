@@ -98,6 +98,12 @@ impl FileSystem {
     pub fn open(&self, path: &str, options: FileOptions) -> Result<File, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let raw_file = pd_func_caller!((*self.0).open, c_path.as_ptr(), options)?;
+        ensure!(
+            raw_file != ptr::null_mut(),
+            "Failed to open file at {} with options {:?}",
+            path,
+            options
+        );
         Ok(File(raw_file))
     }
 
