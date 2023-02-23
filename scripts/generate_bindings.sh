@@ -29,20 +29,20 @@ common_params=("$crankstart_crate_dir/crankstart-sys/wrapper.h"
 
 bindgen $common_params \
   -- \
-  -target x86_64-apple-darwin \
+  -target x86_64 \
   -I"$PLAYDATE_C_API" \
-  -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_macos_x86.rs
+  -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_x86.rs
 
 bindgen $common_params \
   -- \
-  -target aarch64-apple-darwin \
+  -target aarch64 \
   -I"$PLAYDATE_C_API" \
-  -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_macos_aarch64.rs
+  -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_aarch64.rs
 
 bindgen $common_params \
   -- \
   -I"$PLAYDATE_C_API" \
-  -I"/usr/local/playdate/gcc-arm-none-eabi-9-2019-q4-major/arm-none-eabi/include/" \
+  -I"$(which arm-none-eabi-gcc)/../arm-none-eabi/include" \
   -target thumbv7em-none-eabihf \
   -fshort-enums \
   -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_playdate.rs
