@@ -78,6 +78,26 @@ impl System {
         }
     }
 
+    pub fn error(text: &str) {
+        unsafe {
+            if SYSTEM.0 != ptr::null_mut() {
+                if let Ok(c_text) = CString::new(text) {
+                    let error_fn = (*SYSTEM.0).error.expect("error");
+                    error_fn(c_text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
+                }
+            }
+        }
+    }
+
+    pub fn error_raw(text: &str) {
+        unsafe {
+            if SYSTEM.0 != ptr::null_mut() {
+                let error_fn = (*SYSTEM.0).error.expect("error");
+                error_fn(text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
+            }
+        }
+    }
+
     pub fn get_seconds_since_epoch(&self) -> Result<(usize, usize), Error> {
         let mut miliseconds = 0;
         let seconds = pd_func_caller!((*self.0).getSecondsSinceEpoch, &mut miliseconds)?;
