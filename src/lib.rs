@@ -8,6 +8,7 @@ pub mod display;
 pub mod file;
 pub mod geometry;
 pub mod graphics;
+pub mod sound;
 pub mod sprite;
 pub mod system;
 
@@ -16,6 +17,7 @@ use {
         display::Display,
         file::FileSystem,
         graphics::{Graphics, PDRect},
+        sound::Sound,
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
         },
@@ -36,7 +38,7 @@ impl Playdate {
         playdate: *const crankstart_sys::PlaydateAPI,
         sprite_update: SpriteUpdateFunction,
         sprite_draw: SpriteDrawFunction,
-    ) -> Self {
+    ) -> Result<Self, Error> {
         let system = unsafe { (*playdate).system };
         System::new(system);
         let playdate_sprite = unsafe { (*playdate).sprite };
@@ -45,9 +47,11 @@ impl Playdate {
         FileSystem::new(file);
         let graphics = unsafe { (*playdate).graphics };
         Graphics::new(graphics);
+        let sound = unsafe { (*playdate).sound };
+        Sound::new(sound)?;
         let display = unsafe { (*playdate).display };
         Display::new(display);
-        Self { playdate }
+        Ok(Self { playdate })
     }
 }
 
@@ -237,7 +241,14 @@ macro_rules! crankstart_game {
                 _arg: u32,
             ) -> crankstart_sys::ctypes::c_int {
                 if event == PDSystemEvent::kEventInit {
-                    let mut playdate = Playdate::new(playdate, sprite_update, sprite_draw);
+                    // This would only fail if PlaydateAPI has null pointers, which shouldn't happen.
+                    let mut playdate = match Playdate::new(playdate, sprite_update, sprite_draw) {
+                        Ok(playdate) => playdate,
+                        Err(e) => {
+                            log_to_console!("Failed to construct Playdate system: {}", e);
+                            return 1;
+                        }
+                    };
                     System::get()
                         .set_update_callback(Some(update))
                         .unwrap_or_else(|err| {
