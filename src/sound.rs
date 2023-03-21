@@ -1,5 +1,7 @@
 //! `Sound` is the parent structure for the Playdate audio API, and you can get access specific
-//! subsystems through its get methods.  For example, to play an audio sample (sound effect):
+//! subsystems through its 'get' methods.
+//!
+//! For example, to play an audio sample (sound effect):
 //!
 //! ```rust
 //! let sound = Sound::get();
@@ -8,8 +10,15 @@
 //! player.set_sample(&mut sample)?;
 //! player.play(1, 1.0)?;
 //! ```
+//!
+//! To play a music file:
+//! ```rust
+//! let music = Sound::get().get_file_player()?;
+//! music.load_into_player("music.pda")?;
+//! music.play(0)?;
+//! ```
 
-use crate::{log_to_console, pd_func_caller, pd_func_caller_log};
+use crate::{pd_func_caller, pd_func_caller_log};
 use crankstart_sys::ctypes;
 
 use anyhow::{anyhow, ensure, Error, Result};
@@ -18,6 +27,8 @@ use cstr_core::CString;
 
 pub mod sampleplayer;
 pub use sampleplayer::{AudioSample, SamplePlayer};
+pub mod fileplayer;
+pub use fileplayer::FilePlayer;
 
 // When the Playdate system struct is created, it passes the given playdate_sound to Sound::new,
 // which then replaces this.
@@ -30,6 +41,7 @@ pub struct Sound {
 
     // Each audio API subsystem has a struct with all of the relevant functions for that subsystem.
     // These functions are used repeatedly, so pointers to them are stored here for convenience.
+    raw_file_player: *const crankstart_sys::playdate_sound_fileplayer,
     raw_sample: *const crankstart_sys::playdate_sound_sample,
     raw_sample_player: *const crankstart_sys::playdate_sound_sampleplayer,
 }
@@ -40,6 +52,7 @@ impl Sound {
     const fn null() -> Self {
         Self {
             raw_sound: ptr::null(),
+            raw_file_player: ptr::null(),
             raw_sample: ptr::null(),
             raw_sample_player: ptr::null(),
         }
@@ -51,6 +64,8 @@ impl Sound {
         ensure!(!raw_sound.is_null(), "Null pointer passed to Sound::new");
 
         // Get supported subsystem pointers.
+        let raw_file_player = unsafe { (*raw_sound).fileplayer };
+        ensure!(!raw_file_player.is_null(), "Null sound.fileplayer");
         let raw_sample = unsafe { (*raw_sound).sample };
         ensure!(!raw_sample.is_null(), "Null sound.sample");
         let raw_sample_player = unsafe { (*raw_sound).sampleplayer };
@@ -58,6 +73,7 @@ impl Sound {
 
         let sound = Self {
             raw_sound,
+            raw_file_player,
             raw_sample,
             raw_sample_player,
         };
@@ -70,10 +86,23 @@ impl Sound {
         unsafe { SOUND.clone() }
     }
 
+    /// Get a `FilePlayer` that can be used to stream audio from disk, e.g. for music.
+    pub fn get_file_player(&self) -> Result<FilePlayer> {
+        let raw_player = pd_func_caller!((*self.raw_file_player).newPlayer)?;
+        ensure!(
+            !raw_player.is_null(),
+            "Null returned from fileplayer.newPlayer"
+        );
+        FilePlayer::new(self.raw_file_player, raw_player)
+    }
+
     /// Get a `SamplePlayer` that can be used to play sound effects.
     pub fn get_sample_player(&self) -> Result<SamplePlayer> {
         let raw_player = pd_func_caller!((*self.raw_sample_player).newPlayer)?;
-        ensure!(!raw_player.is_null(), "Null returned from newPlayer");
+        ensure!(
+            !raw_player.is_null(),
+            "Null returned from sampleplayer.newPlayer"
+        );
         SamplePlayer::new(self.raw_sample_player, raw_player)
     }
 
