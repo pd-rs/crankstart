@@ -1,6 +1,7 @@
 use crate::{log_to_console, pd_func_caller, pd_func_caller_log};
 use crankstart_sys::ctypes;
 
+use alloc::rc::Rc;
 use anyhow::{anyhow, ensure, Error, Result};
 
 /// Note: Make sure you hold on to a SamplePlayer until the sample has played as much as you want,
@@ -9,6 +10,10 @@ use anyhow::{anyhow, ensure, Error, Result};
 pub struct SamplePlayer {
     raw_subsystem: *const crankstart_sys::playdate_sound_sampleplayer,
     raw_player: *mut crankstart_sys::SamplePlayer,
+
+    // We store an Rc clone of the audio sample so that it's not freed before the player is
+    // finished using it, or until another sample is set.
+    sample: Option<AudioSample>,
 }
 
 impl Drop for SamplePlayer {
@@ -36,15 +41,20 @@ impl SamplePlayer {
         Ok(Self {
             raw_subsystem,
             raw_player,
+            sample: None,
         })
     }
 
     /// Sets the sound effect to be played by this player.
-    pub fn set_sample(&self, audio_sample: &mut AudioSample) -> Result<()> {
+    pub fn set_sample(&mut self, audio_sample: &AudioSample) -> Result<()> {
+        // We store an Rc clone of the audio sample so that it's not freed before the player is
+        // finished using it, or until another sample is set.
+        self.sample = Some(audio_sample.clone());
+
         pd_func_caller!(
             (*self.raw_subsystem).setSample,
             self.raw_player,
-            audio_sample.raw_audio_sample
+            audio_sample.inner.raw_audio_sample
         )
     }
 
@@ -157,13 +167,20 @@ impl SamplePlayer {
 }
 
 /// A loaded sound effect.
-#[derive(Debug)]
+// Really a wrapper around an Rc clone of the internal structure; derive Clone so it's easy to get
+// another Rc reference.  We use Rc so we don't free the sample before we're done using it.
+#[derive(Clone, Debug)]
 pub struct AudioSample {
+    inner: Rc<AudioSampleInner>,
+}
+
+#[derive(Debug)]
+struct AudioSampleInner {
     raw_subsystem: *const crankstart_sys::playdate_sound_sample,
     raw_audio_sample: *mut crankstart_sys::AudioSample,
 }
 
-impl Drop for AudioSample {
+impl Drop for AudioSampleInner {
     fn drop(&mut self) {
         // Use _log to leak rather than fail
         pd_func_caller_log!((*self.raw_subsystem).freeSample, self.raw_audio_sample);
@@ -186,13 +203,18 @@ impl AudioSample {
             "Null pointer given as sample to AudioSample::new"
         );
         Ok(Self {
-            raw_subsystem,
-            raw_audio_sample,
+            inner: Rc::new(AudioSampleInner {
+                raw_subsystem,
+                raw_audio_sample,
+            }),
         })
     }
 
     /// Returns the length of the sample, in seconds.
     pub fn get_length(&self) -> Result<f32> {
-        pd_func_caller!((*self.raw_subsystem).getLength, self.raw_audio_sample)
+        pd_func_caller!(
+            (*self.inner.raw_subsystem).getLength,
+            self.inner.raw_audio_sample
+        )
     }
 }
