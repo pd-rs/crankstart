@@ -415,6 +415,30 @@ impl Graphics {
         Self::get().0
     }
 
+    /// Allows drawing directly into an image rather than the framebuffer, for example for
+    /// drawing text into a sprite's image.
+    pub fn with_context<F, T>(&self, bitmap: &mut Bitmap, f: F) -> Result<T, Error>
+    where
+        F: FnOnce() -> Result<T, Error>,
+    {
+        // Any calls in this context are directly modifying the bitmap, so borrow mutably
+        // for safety.
+        self.push_context(bitmap.inner.borrow_mut().raw_bitmap)?;
+        let res = f();
+        self.pop_context()?;
+        res
+    }
+
+    /// Internal function; use `with_context`.
+    fn push_context(&self, raw_bitmap: *mut crankstart_sys::LCDBitmap) -> Result<(), Error> {
+        pd_func_caller!((*self.0).pushContext, raw_bitmap)
+    }
+
+    /// Internal function; use `with_context`.
+    fn pop_context(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).popContext)
+    }
+
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getFrame)?;
         anyhow::ensure!(
