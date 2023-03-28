@@ -27,6 +27,7 @@ pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum LCDColor {
     Solid(LCDSolidColor),
     Pattern(LCDPattern),
@@ -699,6 +700,18 @@ impl Graphics {
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
             text.len() as usize,
+            PDStringEncoding::kUTF8Encoding,
+            tracking,
+        )
+    }
+
+    pub fn get_system_text_width(&self, text: &str, tracking: i32) -> Result<i32, Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).getTextWidth,
+            ptr::null_mut(),
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )

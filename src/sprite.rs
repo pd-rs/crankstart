@@ -2,7 +2,7 @@ extern crate alloc;
 
 use {
     crate::{
-        graphics::{Bitmap, LCDBitmapFlip, PDRect},
+        graphics::{Bitmap, Graphics, LCDBitmapFlip, LCDColor, PDRect},
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
         Playdate,
@@ -22,10 +22,14 @@ use {
     crankstart_sys::{
         playdate_sprite, LCDRect, LCDSprite, LCDSpriteCollisionFilterProc, SpriteCollisionInfo,
     },
+    euclid::{point2, size2},
     hashbrown::HashMap,
 };
 
 pub use crankstart_sys::SpriteCollisionResponseType;
+
+// Currently no font:getHeight in C API.
+const SYSTEM_FONT_HEIGHT: i32 = 18;
 
 pub type SpriteUpdateFunction = unsafe extern "C" fn(sprite: *mut crankstart_sys::LCDSprite);
 pub type SpriteDrawFunction =
@@ -496,6 +500,88 @@ impl SpriteManager {
     pub fn update_and_draw_sprites(&mut self) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).updateAndDrawSprites)?;
         self.sprites.retain(|k, v| v.weak_count() != 0);
+        Ok(())
+    }
+}
+
+/// This is a helper type for drawing text into a sprite.  Drawing text into a sprite is the
+/// recommended way to display text when using sprites in your game; it removes timing issues and
+/// gives you the flexibility of the sprite system rather than draw_text alone.
+///
+/// After creation with `new`, you can `update_text` as desired, and use `get_sprite` or
+/// `get_sprite_mut` to access the `Sprite` for other operations like `move_to` and `get_bounds`
+/// (which can tell you the height and width of the generated bitmap).
+///
+/// Note: it's assumed that you're using the system font and haven't changed its tracking; we have
+/// no way to retrieve the current font or tracking with C APIs.
+#[derive(Clone, Debug)]
+pub struct TextSprite {
+    sprite: Sprite,
+    background: LCDColor,
+}
+
+impl TextSprite {
+    /// Creates a `TextSprite`, draws the given text into it over the given background color,
+    /// and adds the underlying sprite to the `SpriteManager`.
+    pub fn new<S>(text: S, background: LCDColor) -> Result<Self, Error>
+    where
+        S: AsRef<str>,
+    {
+        let text = text.as_ref();
+        let graphics = Graphics::get();
+        let sprite_manager = SpriteManager::get_mut();
+
+        // Currently no getTextTracking C API; assume none has been set.
+        let tracking = 0;
+
+        let width = graphics.get_system_text_width(text, tracking)?;
+
+        let mut text_bitmap =
+            graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), background.clone())?;
+        graphics.with_context(&mut text_bitmap, || {
+            graphics.draw_text(text, point2(0, 0))?;
+            Ok(())
+        })?;
+
+        let mut sprite = sprite_manager.new_sprite()?;
+        sprite.set_image(text_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+        sprite_manager.add_sprite(&sprite)?;
+
+        Ok(Self { sprite, background })
+    }
+
+    pub fn get_sprite(&self) -> &Sprite {
+        &self.sprite
+    }
+
+    pub fn get_sprite_mut(&mut self) -> &mut Sprite {
+        &mut self.sprite
+    }
+
+    /// Recreates the underlying bitmap with the given text; use `get_sprite().get_bounds()`
+    /// to see the new size.
+    pub fn update_text<S>(&mut self, text: S) -> Result<(), Error>
+    where
+        S: AsRef<str>,
+    {
+        let text = text.as_ref();
+        let graphics = Graphics::get();
+
+        // Currently no getTextTracking C API; assume none has been set.
+        let tracking = 0;
+
+        let width = graphics.get_system_text_width(text, tracking)?;
+
+        let mut text_bitmap =
+            graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), self.background.clone())?;
+        graphics.with_context(&mut text_bitmap, || {
+            graphics.draw_text(text, point2(0, 0))?;
+            Ok(())
+        })?;
+
+        self.sprite
+            .set_image(text_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+
         Ok(())
     }
 }
