@@ -214,6 +214,11 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).setZIndex, self.raw_sprite, z_index)
     }
 
+    /// Returns a reference to the bitmap assigned to the sprite, if any.
+    pub fn get_image(&self) -> Option<&Bitmap> {
+        self.image.as_ref()
+    }
+
     pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
         pd_func_caller!(
             (*self.playdate_sprite).setImage,
@@ -353,6 +358,17 @@ impl Sprite {
             .try_borrow_mut()
             .map_err(Error::msg)?
             .set_z_index(z_index)
+    }
+
+    /// Returns a reference to the bitmap assigned to the sprite, if any.  Specifically,
+    /// returns Err if the inner data is already mutably borrowed; Ok(None) if no sprite has
+    /// been assigned; Ok(Some(Ref<Bitmap>)) if a sprite has been assigned.
+    pub fn get_image(&self) -> Result<Option<Ref<Bitmap>>> {
+        let borrowed: Ref<SpriteInner> = self.inner.try_borrow().map_err(Error::msg)?;
+        let filtered: Result<Ref<Bitmap>, _> =
+            Ref::filter_map(borrowed, |b: &SpriteInner| b.get_image());
+        // filter_map gives back the original if the closure returns None, which we don't need
+        Ok(filtered.ok())
     }
 
     pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
