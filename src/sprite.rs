@@ -14,7 +14,7 @@ use {
     },
     anyhow::{anyhow, Error, Result},
     core::{
-        cell::RefCell,
+        cell::{Ref, RefCell},
         fmt::Debug,
         hash::{Hash, Hasher},
         slice,
@@ -22,7 +22,8 @@ use {
     crankstart_sys::{
         playdate_sprite, LCDRect, LCDSprite, LCDSpriteCollisionFilterProc, SpriteCollisionInfo,
     },
-    euclid::{point2, size2},
+    euclid::default::Vector2D,
+    euclid::{point2, size2, vec2},
     hashbrown::HashMap,
 };
 
@@ -582,6 +583,61 @@ impl TextSprite {
         self.sprite
             .set_image(text_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
 
+        Ok(())
+    }
+}
+
+/// This is a helper type for rotating and scaling an image in a sprite.
+///
+/// After creation with `new`, you can `set_rotation` to update the parameters, and use
+/// `get_sprite` or `get_sprite_mut` to access the `Sprite` for other operations like `move_to`
+/// and `get_bounds` (which can tell you the height and width of the generated bitmap).
+///
+/// Note: the image is rotated around its center point.  If you want to rotate around another
+/// point, there are a few options:
+/// 1. Extend the image with transparent pixels in one direction so it appears to be rotating
+///    about another point.
+/// 2. Rotate about the center, then move the sprite to an equivalent position.
+/// 3. Manage the image and sprite manually: do the math to find the size after rotation, create
+///    a fresh Bitmap of that size, and use Graphics.draw_rotated() to draw into it, since
+///    draw_rotated allows specifying the center point.
+#[derive(Clone, Debug)]
+pub struct RotatedSprite {
+    /// The managed sprite.
+    sprite: Sprite,
+    /// The original, unrotated/unscaled bitmap; use this rather than reading back a
+    /// rotated/scaled image because of compounding error introduced in that process.
+    bitmap: Bitmap,
+}
+
+impl RotatedSprite {
+    /// Creates a `RotatedSprite`, draws the rotated and scaled image into it, and adds the
+    /// underlying sprite to the `SpriteManager`.
+    pub fn new(bitmap: Bitmap, angle: f32, scaling: Vector2D<f32>) -> Result<Self, Error> {
+        let rotated_bitmap = bitmap.rotated(angle, scaling)?;
+
+        let sprite_manager = SpriteManager::get_mut();
+        let mut sprite = sprite_manager.new_sprite()?;
+        sprite.set_image(rotated_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+        sprite_manager.add_sprite(&sprite)?;
+
+        Ok(Self { sprite, bitmap })
+    }
+
+    pub fn get_sprite(&self) -> &Sprite {
+        &self.sprite
+    }
+
+    pub fn get_sprite_mut(&mut self) -> &mut Sprite {
+        &mut self.sprite
+    }
+
+    /// Recreates the underlying bitmap with the given rotation angle and scaling; use
+    /// `get_sprite().get_bounds()` to see the new size.
+    pub fn set_rotation(&mut self, angle: f32, scaling: Vector2D<f32>) -> Result<(), Error> {
+        let rotated_bitmap = self.bitmap.rotated(angle, scaling)?;
+        self.sprite
+            .set_image(rotated_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
         Ok(())
     }
 }
