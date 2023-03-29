@@ -62,9 +62,15 @@ extern "C" {}
 #[link(name = "msvcrt")]
 extern "C" {}
 
-#[cfg(all(not(target_os = "none"), any(target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(all(
+    not(target_os = "none"),
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
 include!("bindings_x86.rs");
-#[cfg(all(not(target_os = "none"), any(target_arch = "aarch64", target_arch = "arm")))]
+#[cfg(all(
+    not(target_os = "none"),
+    any(target_arch = "aarch64", target_arch = "arm")
+))]
 include!("bindings_aarch64.rs");
 #[cfg(target_os = "none")]
 include!("bindings_playdate.rs");
