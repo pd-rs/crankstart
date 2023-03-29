@@ -24,10 +24,8 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          components: rustfmt
           toolchain: stable
 
       - name: Check
-        run: cargo fmt -- --check
+        run: cargo fmt --check
 
