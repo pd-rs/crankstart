@@ -1,0 +1,30 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+env:
+  RUSTUP_MAX_RETRIES: 10
+  CARGO_TERM_COLOR: always
+
+jobs:
+  format:
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt
+          toolchain: stable
+
+      - name: Check
+        run: cargo fmt -- --check
+
