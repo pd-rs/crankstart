@@ -128,7 +128,7 @@ pub enum Whence {
 }
 
 #[derive(Debug)]
-pub struct File(*mut SDFile);
+pub struct     File(*mut SDFile);
 
 impl File {
     pub fn read(&self, buf: &mut [u8]) -> Result<usize, Error> {
