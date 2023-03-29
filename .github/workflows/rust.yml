@@ -1,4 +1,4 @@
-name: Rust
+name: Check Rust Format
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  check:
 
     runs-on: ubuntu-latest
 
