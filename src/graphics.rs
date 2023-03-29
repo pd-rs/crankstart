@@ -27,6 +27,7 @@ pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum LCDColor {
     Solid(LCDSolidColor),
     Pattern(LCDPattern),
@@ -100,6 +101,39 @@ impl BitmapInner {
             scale.x,
             scale.y,
         )
+    }
+
+    pub fn draw_rotated(
+        &self,
+        location: ScreenPoint,
+        degrees: f32,
+        center: Vector2D<f32>,
+        scale: Vector2D<f32>,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).drawRotatedBitmap,
+            self.raw_bitmap,
+            location.x,
+            location.y,
+            degrees,
+            center.x,
+            center.y,
+            scale.x,
+            scale.y,
+        )
+    }
+
+    pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).rotatedBitmap,
+            self.raw_bitmap,
+            degrees,
+            scale.x,
+            scale.y,
+            // No documentation on this anywhere, but null works in testing.
+            ptr::null_mut(), // allocedSize
+        )?;
+        Ok(Self { raw_bitmap })
     }
 
     pub fn tile(
@@ -238,6 +272,29 @@ impl Bitmap {
 
     pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
         self.inner.borrow().draw_scaled(location, scale)
+    }
+
+    /// Draw the `Bitmap` to the given `location`, rotated `degrees` about the `center` point,
+    /// scaled up or down in size by `scale`.  `center` is given by two numbers between 0.0 and
+    /// 1.0, where (0, 0) is the top left and (0.5, 0.5) is the center point.
+    pub fn draw_rotated(
+        &self,
+        location: ScreenPoint,
+        degrees: f32,
+        center: Vector2D<f32>,
+        scale: Vector2D<f32>,
+    ) -> Result<(), Error> {
+        self.inner
+            .borrow()
+            .draw_rotated(location, degrees, center, scale)
+    }
+
+    /// Return a copy of self, rotated by `degrees` and scaled up or down in size by `scale`.
+    pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
+        let raw_bitmap = self.inner.borrow().rotated(degrees, scale)?;
+        Ok(Self {
+            inner: Rc::new(RefCell::new(raw_bitmap)),
+        })
     }
 
     pub fn tile(
@@ -699,6 +756,18 @@ impl Graphics {
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
             text.len() as usize,
+            PDStringEncoding::kUTF8Encoding,
+            tracking,
+        )
+    }
+
+    pub fn get_system_text_width(&self, text: &str, tracking: i32) -> Result<i32, Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).getTextWidth,
+            ptr::null_mut(),
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )
