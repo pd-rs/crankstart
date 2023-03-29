@@ -6,7 +6,7 @@ extern crate alloc;
 
 pub mod display;
 pub mod file;
-pub mod      geometry;
+pub mod geometry;
 pub mod graphics;
 pub mod sound;
 pub mod sprite;
