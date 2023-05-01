@@ -42,7 +42,7 @@ bindgen $common_params \
 bindgen $common_params \
   -- \
   -I"$PLAYDATE_C_API" \
-  -I"$(which arm-none-eabi-gcc)/../arm-none-eabi/include" \
+  -I"$(arm-none-eabi-gcc -print-sysroot)/include" \
   -target thumbv7em-none-eabihf \
   -fshort-enums \
   -DTARGET_EXTENSION > $crankstart_crate_dir/crankstart-sys/src/bindings_playdate.rs
