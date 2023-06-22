@@ -92,8 +92,8 @@ Here's a guide.
 
 1. Install [the dependencies for bindgen](https://rust-lang.github.io/rust-bindgen/requirements.html).
 2. Install [bindgen-cli](https://rust-lang.github.io/rust-bindgen/command-line-usage.html).
-3. Install the gcc-arm-none-eabi toolchain, either [manually](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) or through a system package, which may also be named something like "cross-arm-none-eabi-gcc".
-4. On Linux, install the 32-bit glibc development package, which will be called something like `glibc-devel-32bit`.
+3. Install the `gcc-arm-none-eabi` toolchain, either [manually](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) or through a system package, such as `gcc-arm-none-eabi` on Ubuntu Linux or something like `cross-arm-none-eabi-gcc`.
+4. On Linux, install the 32-bit glibc development package, which will be called something like `gcc-multilib` in Ubuntu or `glibc-devel-32bit` in Fedora.
 5. Install the new [Playdate SDK](https://play.date/dev/), and if it's not at the default MacOS path, set `PLAYDATE_SDK_PATH` to where you unzipped it.  (This should be the directory that contains `C_API`, `CoreLibs`, etc.)
 6. Run `./scripts/generate_bindings.sh`
 7. Inspect the changes to `crankstart-sys/src/bindings_*` - they should reflect the updates to the Playdate C API.  If nothing changed, double-check that the C API actually changed and not just the Lua API.

@@ -43,9 +43,12 @@ bindgen "$@" \
   -I"$PLAYDATE_C_API" \
   -DTARGET_EXTENSION > "${crankstart_crate_dir}/crankstart-sys/src/bindings_aarch64.rs"
 
+# /usr/include is here because under some versions of Linux (such as Mint 21.1)
+# the arm-non-eabi-gcc -print-sysroot command outputs nothing
 bindgen "$@" \
   -- \
   -I"$PLAYDATE_C_API" \
+  -I"/usr/include" \
   -I"$(arm-none-eabi-gcc -print-sysroot)/include" \
   -target thumbv7em-none-eabihf \
   -fshort-enums \
