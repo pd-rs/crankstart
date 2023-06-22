@@ -80,8 +80,15 @@ features = [ "alloc" ]
 
 `assets` should be a list of paths to any/all assets you need copied into your project, such as sprites, music, etc.
 
- 7. Inside your `lib.rs`, you only need to implement the `crankstart::Game` trait to your game's core state struct, then call `crankstart::crankstart_game!` on that struct. See the `examples` folder for examples.
- 8. To run the project, its root, you should now be able to `crank run` successfully!
+7. Add a 'rust-toolchain.toml' the same level as your 'Cargo.toml', with this minimum:
+
+```toml
+[toolchain]
+channel = "nightly"
+```
+
+ 8. Inside your `lib.rs`, you only need to implement the `crankstart::Game` trait to your game's core state struct, then call `crankstart::crankstart_game!` on that struct. See the `examples` folder for examples.
+ 9. To run the project, its root, you should now be able to `crank run` successfully!
 
 If you want an example of an independent project following these conventions, go check out [Nine Lives](https://github.com/bravely/nine_lives).
 
