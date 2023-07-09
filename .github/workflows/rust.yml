@@ -1,0 +1,21 @@
+name: Check Rust Format
+
+on:
+  push:
+     branches: [ "main" ]
+  pull_request:
+     branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check Format
+      run: cargo fmt --check

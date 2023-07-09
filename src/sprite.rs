@@ -2,7 +2,7 @@ extern crate alloc;
 
 use {
     crate::{
-        graphics::{Bitmap, LCDBitmapFlip, PDRect},
+        graphics::{Bitmap, Graphics, LCDBitmapFlip, LCDColor, PDRect},
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
         Playdate,
@@ -14,7 +14,7 @@ use {
     },
     anyhow::{anyhow, Error, Result},
     core::{
-        cell::RefCell,
+        cell::{Ref, RefCell},
         fmt::Debug,
         hash::{Hash, Hasher},
         slice,
@@ -22,17 +22,19 @@ use {
     crankstart_sys::{
         playdate_sprite, LCDRect, LCDSprite, LCDSpriteCollisionFilterProc, SpriteCollisionInfo,
     },
+    euclid::default::Vector2D,
+    euclid::{point2, size2, vec2},
     hashbrown::HashMap,
 };
 
 pub use crankstart_sys::SpriteCollisionResponseType;
 
+// Currently no font:getHeight in C API.
+const SYSTEM_FONT_HEIGHT: i32 = 18;
+
 pub type SpriteUpdateFunction = unsafe extern "C" fn(sprite: *mut crankstart_sys::LCDSprite);
-pub type SpriteDrawFunction = unsafe extern "C" fn(
-    sprite: *mut crankstart_sys::LCDSprite,
-    bounds: PDRect,
-    drawrect: PDRect,
-);
+pub type SpriteDrawFunction =
+    unsafe extern "C" fn(sprite: *mut crankstart_sys::LCDSprite, bounds: PDRect, drawrect: PDRect);
 pub type SpriteCollideFunction = unsafe extern "C" fn(
     sprite: *const crankstart_sys::LCDSprite,
     other: *const crankstart_sys::LCDSprite,
@@ -212,6 +214,11 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).setZIndex, self.raw_sprite, z_index)
     }
 
+    /// Returns a reference to the bitmap assigned to the sprite, if any.
+    pub fn get_image(&self) -> Option<&Bitmap> {
+        self.image.as_ref()
+    }
+
     pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
         pd_func_caller!(
             (*self.playdate_sprite).setImage,
@@ -351,6 +358,17 @@ impl Sprite {
             .try_borrow_mut()
             .map_err(Error::msg)?
             .set_z_index(z_index)
+    }
+
+    /// Returns a reference to the bitmap assigned to the sprite, if any.  Specifically,
+    /// returns Err if the inner data is already mutably borrowed; Ok(None) if no sprite has
+    /// been assigned; Ok(Some(Ref<Bitmap>)) if a sprite has been assigned.
+    pub fn get_image(&self) -> Result<Option<Ref<Bitmap>>> {
+        let borrowed: Ref<SpriteInner> = self.inner.try_borrow().map_err(Error::msg)?;
+        let filtered: Result<Ref<Bitmap>, _> =
+            Ref::filter_map(borrowed, |b: &SpriteInner| b.get_image());
+        // filter_map gives back the original if the closure returns None, which we don't need
+        Ok(filtered.ok())
     }
 
     pub fn set_image(&mut self, bitmap: Bitmap, flip: LCDBitmapFlip) -> Result<(), Error> {
@@ -499,6 +517,143 @@ impl SpriteManager {
     pub fn update_and_draw_sprites(&mut self) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).updateAndDrawSprites)?;
         self.sprites.retain(|k, v| v.weak_count() != 0);
+        Ok(())
+    }
+}
+
+/// This is a helper type for drawing text into a sprite.  Drawing text into a sprite is the
+/// recommended way to display text when using sprites in your game; it removes timing issues and
+/// gives you the flexibility of the sprite system rather than draw_text alone.
+///
+/// After creation with `new`, you can `update_text` as desired, and use `get_sprite` or
+/// `get_sprite_mut` to access the `Sprite` for other operations like `move_to` and `get_bounds`
+/// (which can tell you the height and width of the generated bitmap).
+///
+/// Note: it's assumed that you're using the system font and haven't changed its tracking; we have
+/// no way to retrieve the current font or tracking with C APIs.
+#[derive(Clone, Debug)]
+pub struct TextSprite {
+    sprite: Sprite,
+    background: LCDColor,
+}
+
+impl TextSprite {
+    /// Creates a `TextSprite`, draws the given text into it over the given background color,
+    /// and adds the underlying sprite to the `SpriteManager`.
+    pub fn new<S>(text: S, background: LCDColor) -> Result<Self, Error>
+    where
+        S: AsRef<str>,
+    {
+        let text = text.as_ref();
+        let graphics = Graphics::get();
+        let sprite_manager = SpriteManager::get_mut();
+
+        // Currently no getTextTracking C API; assume none has been set.
+        let tracking = 0;
+
+        let width = graphics.get_system_text_width(text, tracking)?;
+
+        let mut text_bitmap =
+            graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), background.clone())?;
+        graphics.with_context(&mut text_bitmap, || {
+            graphics.draw_text(text, point2(0, 0))?;
+            Ok(())
+        })?;
+
+        let mut sprite = sprite_manager.new_sprite()?;
+        sprite.set_image(text_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+        sprite_manager.add_sprite(&sprite)?;
+
+        Ok(Self { sprite, background })
+    }
+
+    pub fn get_sprite(&self) -> &Sprite {
+        &self.sprite
+    }
+
+    pub fn get_sprite_mut(&mut self) -> &mut Sprite {
+        &mut self.sprite
+    }
+
+    /// Recreates the underlying bitmap with the given text; use `get_sprite().get_bounds()`
+    /// to see the new size.
+    pub fn update_text<S>(&mut self, text: S) -> Result<(), Error>
+    where
+        S: AsRef<str>,
+    {
+        let text = text.as_ref();
+        let graphics = Graphics::get();
+
+        // Currently no getTextTracking C API; assume none has been set.
+        let tracking = 0;
+
+        let width = graphics.get_system_text_width(text, tracking)?;
+
+        let mut text_bitmap =
+            graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), self.background.clone())?;
+        graphics.with_context(&mut text_bitmap, || {
+            graphics.draw_text(text, point2(0, 0))?;
+            Ok(())
+        })?;
+
+        self.sprite
+            .set_image(text_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+
+        Ok(())
+    }
+}
+
+/// This is a helper type for rotating and scaling an image in a sprite.
+///
+/// After creation with `new`, you can `set_rotation` to update the parameters, and use
+/// `get_sprite` or `get_sprite_mut` to access the `Sprite` for other operations like `move_to`
+/// and `get_bounds` (which can tell you the height and width of the generated bitmap).
+///
+/// Note: the image is rotated around its center point.  If you want to rotate around another
+/// point, there are a few options:
+/// 1. Extend the image with transparent pixels in one direction so it appears to be rotating
+///    about another point.
+/// 2. Rotate about the center, then move the sprite to an equivalent position.
+/// 3. Manage the image and sprite manually: do the math to find the size after rotation, create
+///    a fresh Bitmap of that size, and use Graphics.draw_rotated() to draw into it, since
+///    draw_rotated allows specifying the center point.
+#[derive(Clone, Debug)]
+pub struct RotatedSprite {
+    /// The managed sprite.
+    sprite: Sprite,
+    /// The original, unrotated/unscaled bitmap; use this rather than reading back a
+    /// rotated/scaled image because of compounding error introduced in that process.
+    bitmap: Bitmap,
+}
+
+impl RotatedSprite {
+    /// Creates a `RotatedSprite`, draws the rotated and scaled image into it, and adds the
+    /// underlying sprite to the `SpriteManager`.
+    pub fn new(bitmap: Bitmap, angle: f32, scaling: Vector2D<f32>) -> Result<Self, Error> {
+        let rotated_bitmap = bitmap.rotated(angle, scaling)?;
+
+        let sprite_manager = SpriteManager::get_mut();
+        let mut sprite = sprite_manager.new_sprite()?;
+        sprite.set_image(rotated_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
+        sprite_manager.add_sprite(&sprite)?;
+
+        Ok(Self { sprite, bitmap })
+    }
+
+    pub fn get_sprite(&self) -> &Sprite {
+        &self.sprite
+    }
+
+    pub fn get_sprite_mut(&mut self) -> &mut Sprite {
+        &mut self.sprite
+    }
+
+    /// Recreates the underlying bitmap with the given rotation angle and scaling; use
+    /// `get_sprite().get_bounds()` to see the new size.
+    pub fn set_rotation(&mut self, angle: f32, scaling: Vector2D<f32>) -> Result<(), Error> {
+        let rotated_bitmap = self.bitmap.rotated(angle, scaling)?;
+        self.sprite
+            .set_image(rotated_bitmap, LCDBitmapFlip::kBitmapUnflipped)?;
         Ok(())
     }
 }

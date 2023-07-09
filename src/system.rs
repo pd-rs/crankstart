@@ -1,10 +1,5 @@
 use {
-    crate::pd_func_caller,
-    alloc::{format, string::String, vec::Vec},
-    anyhow::Error,
-    core::{ptr, convert::TryInto},
-    crankstart_sys::{ctypes::c_void, size_t},
-    cstr_core::CStr,
+    crate::pd_func_caller, alloc::format, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
     cstr_core::CString,
 };
 
@@ -30,7 +25,7 @@ impl System {
         unsafe { SYSTEM.clone() }
     }
 
-    pub(crate) fn realloc(&self, ptr: *mut c_void, size: size_t) -> *mut c_void {
+    pub(crate) fn realloc(&self, ptr: *mut c_void, size: usize) -> *mut c_void {
         unsafe {
             let realloc_fn = (*self.0).realloc.expect("realloc");
             realloc_fn(ptr, size)
@@ -146,6 +141,26 @@ impl System {
             if SYSTEM.0 != ptr::null_mut() {
                 let log_to_console_fn = (*SYSTEM.0).logToConsole.expect("logToConsole");
                 log_to_console_fn(text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
+            }
+        }
+    }
+
+    pub fn error(text: &str) {
+        unsafe {
+            if SYSTEM.0 != ptr::null_mut() {
+                if let Ok(c_text) = CString::new(text) {
+                    let error_fn = (*SYSTEM.0).error.expect("error");
+                    error_fn(c_text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
+                }
+            }
+        }
+    }
+
+    pub fn error_raw(text: &str) {
+        unsafe {
+            if SYSTEM.0 != ptr::null_mut() {
+                let error_fn = (*SYSTEM.0).error.expect("error");
+                error_fn(text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
             }
         }
     }

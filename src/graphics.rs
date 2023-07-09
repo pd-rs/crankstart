@@ -7,7 +7,7 @@ use {
     alloc::{format, rc::Rc},
     anyhow::{anyhow, ensure, Error},
     core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
-    crankstart_sys::{ctypes::c_int, size_t, LCDBitmapTable, LCDPattern},
+    crankstart_sys::{ctypes::c_int, LCDBitmapTable, LCDPattern},
     cstr_core::{CStr, CString},
     euclid::default::{Point2D, Vector2D},
     hashbrown::HashMap,
@@ -27,6 +27,7 @@ pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum LCDColor {
     Solid(LCDSolidColor),
     Pattern(LCDPattern),
@@ -62,21 +63,21 @@ impl BitmapInner {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
-        let mut hasmask = 0;
+        let mut mask_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
             self.raw_bitmap,
             &mut width,
             &mut height,
             &mut rowbytes,
-            &mut hasmask,
+            &mut mask_ptr,
             ptr::null_mut(),
         )?;
         Ok(BitmapData {
             width,
             height,
             rowbytes,
-            hasmask: hasmask != 0,
+            hasmask: mask_ptr != ptr::null_mut(),
         })
     }
 
@@ -100,6 +101,39 @@ impl BitmapInner {
             scale.x,
             scale.y,
         )
+    }
+
+    pub fn draw_rotated(
+        &self,
+        location: ScreenPoint,
+        degrees: f32,
+        center: Vector2D<f32>,
+        scale: Vector2D<f32>,
+    ) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).drawRotatedBitmap,
+            self.raw_bitmap,
+            location.x,
+            location.y,
+            degrees,
+            center.x,
+            center.y,
+            scale.x,
+            scale.y,
+        )
+    }
+
+    pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).rotatedBitmap,
+            self.raw_bitmap,
+            degrees,
+            scale.x,
+            scale.y,
+            // No documentation on this anywhere, but null works in testing.
+            ptr::null_mut(), // allocedSize
+        )?;
+        Ok(Self { raw_bitmap })
     }
 
     pub fn tile(
@@ -238,6 +272,29 @@ impl Bitmap {
 
     pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
         self.inner.borrow().draw_scaled(location, scale)
+    }
+
+    /// Draw the `Bitmap` to the given `location`, rotated `degrees` about the `center` point,
+    /// scaled up or down in size by `scale`.  `center` is given by two numbers between 0.0 and
+    /// 1.0, where (0, 0) is the top left and (0.5, 0.5) is the center point.
+    pub fn draw_rotated(
+        &self,
+        location: ScreenPoint,
+        degrees: f32,
+        center: Vector2D<f32>,
+        scale: Vector2D<f32>,
+    ) -> Result<(), Error> {
+        self.inner
+            .borrow()
+            .draw_rotated(location, degrees, center, scale)
+    }
+
+    /// Return a copy of self, rotated by `degrees` and scaled up or down in size by `scale`.
+    pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
+        let raw_bitmap = self.inner.borrow().rotated(degrees, scale)?;
+        Ok(Self {
+            inner: Rc::new(RefCell::new(raw_bitmap)),
+        })
     }
 
     pub fn tile(
@@ -415,8 +472,28 @@ impl Graphics {
         Self::get().0
     }
 
-    pub fn set_draw_mode(&self, draw_mode: LCDBitmapDrawMode) -> Result<(), Error> {
-        pd_func_caller!((*self.0).setDrawMode, draw_mode)
+    /// Allows drawing directly into an image rather than the framebuffer, for example for
+    /// drawing text into a sprite's image.
+    pub fn with_context<F, T>(&self, bitmap: &mut Bitmap, f: F) -> Result<T, Error>
+    where
+        F: FnOnce() -> Result<T, Error>,
+    {
+        // Any calls in this context are directly modifying the bitmap, so borrow mutably
+        // for safety.
+        self.push_context(bitmap.inner.borrow_mut().raw_bitmap)?;
+        let res = f();
+        self.pop_context()?;
+        res
+    }
+
+    /// Internal function; use `with_context`.
+    fn push_context(&self, raw_bitmap: *mut crankstart_sys::LCDBitmap) -> Result<(), Error> {
+        pd_func_caller!((*self.0).pushContext, raw_bitmap)
+    }
+
+    /// Internal function; use `with_context`.
+    fn pop_context(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).popContext)
     }
 
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
@@ -459,6 +536,10 @@ impl Graphics {
 
     pub fn set_background_color(&self, color: LCDSolidColor) -> Result<(), Error> {
         pd_func_caller!((*self.0).setBackgroundColor, color.into())
+    }
+
+    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setDrawMode, mode)
     }
 
     pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
@@ -661,7 +742,7 @@ impl Graphics {
         pd_func_caller!(
             (*self.0).drawText,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as size_t,
+            text.len() as usize,
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
@@ -674,7 +755,19 @@ impl Graphics {
             (*self.0).getTextWidth,
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as size_t,
+            text.len() as usize,
+            PDStringEncoding::kUTF8Encoding,
+            tracking,
+        )
+    }
+
+    pub fn get_system_text_width(&self, text: &str, tracking: i32) -> Result<i32, Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).getTextWidth,
+            ptr::null_mut(),
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )

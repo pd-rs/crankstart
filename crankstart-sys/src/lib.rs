@@ -23,7 +23,10 @@ pub mod ctypes {
     pub type realloc_size = u64;
 }
 
-#[cfg(all(not(target_os = "macos"), any(target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(all(
+    not(target_os = "macos"),
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
 pub mod ctypes {
     pub type c_ulong = u64;
     pub type c_int = i32;
@@ -36,7 +39,10 @@ pub mod ctypes {
     pub type realloc_size = u32;
 }
 
-#[cfg(all(not(target_os = "macos"), any(target_arch = "aarch64", target_arch = "arm")))]
+#[cfg(all(
+    not(target_os = "macos"),
+    any(target_arch = "aarch64", target_arch = "arm")
+))]
 pub mod ctypes {
     pub type c_ulong = u64;
     pub type c_int = i32;
@@ -51,16 +57,22 @@ pub mod ctypes {
 
 #[cfg(all(target_os = "windows", target_feature = "crt-static"))]
 #[link(name = "libcmt")]
-extern {}
+extern "C" {}
 #[cfg(all(target_os = "windows", not(target_feature = "crt-static")))]
 #[link(name = "msvcrt")]
-extern {}
+extern "C" {}
 
-#[cfg(all(target_os = "macos", any(target_arch = "x86", target_arch = "x86_64")))]
-include!("bindings_macos_x86.rs");
-#[cfg(all(target_os = "macos", any(target_arch = "aarch64", target_arch = "arm")))]
-include!("bindings_macos_aarch64.rs");
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(
+    not(target_os = "none"),
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
+include!("bindings_x86.rs");
+#[cfg(all(
+    not(target_os = "none"),
+    any(target_arch = "aarch64", target_arch = "arm")
+))]
+include!("bindings_aarch64.rs");
+#[cfg(target_os = "none")]
 include!("bindings_playdate.rs");
 
 impl From<euclid::default::Rect<i32>> for LCDRect {

@@ -14,7 +14,7 @@ panic_immediate_abort = false
 
 [profile.dev]
 panic = "abort"
-opt-level = 'z'
+opt-level = 2
 lto = true
 
 [profile.release]
@@ -44,10 +44,10 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 anyhow = { version = "1.0.31", default-features = false }
+crankstart-sys = { version = "0.1.1", path = "crankstart-sys" }
 euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
 hashbrown = "0.7.2"
-heapless = "0.5.5"
-crankstart-sys = { version = "0.1.1", path = "crankstart-sys" }
+heapless = "0.6.1"
 
 [dev-dependencies]
 randomize = "3.0.1"
