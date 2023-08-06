@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(internal_features)]
 #![feature(lang_items, alloc_error_handler, core_intrinsics)]
 #![allow(unused_variables, dead_code, unused_imports)]
 
