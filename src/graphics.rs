@@ -712,7 +712,6 @@ impl Graphics {
         start_angle: f32,
         end_angle: f32,
         color: LCDColor,
-        clip: LCDRect,
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillEllipse,

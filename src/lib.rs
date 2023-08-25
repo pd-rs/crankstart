@@ -141,14 +141,14 @@ impl<T: 'static + Game> GameRunner<T> {
         }
 
         if let Some(game) = self.game.as_mut() {
-            match game.update(&mut self.playdate) {
-                Err(err) => log_to_console!("Error in update: {}", err),
-                _ => (),
-            }
             match SpriteManager::get_mut().update_and_draw_sprites() {
                 Err(err) => {
                     log_to_console!("Error from sprite_manager.update_and_draw_sprites: {}", err)
                 }
+                _ => (),
+            }
+            match game.update(&mut self.playdate) {
+                Err(err) => log_to_console!("Error in update: {}", err),
                 _ => (),
             }
             if game.draw_fps() {
