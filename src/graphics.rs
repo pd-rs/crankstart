@@ -761,6 +761,10 @@ impl Graphics {
         )
     }
 
+    pub fn get_font_height(&self, font: &Font) -> Result<u8, Error> {
+        pd_func_caller!((*self.0).getFontHeight, font.0)
+    }
+
     pub fn get_system_text_width(&self, text: &str, tracking: i32) -> Result<i32, Error> {
         let c_text = CString::new(text).map_err(Error::msg)?;
         pd_func_caller!(
