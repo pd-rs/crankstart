@@ -1,6 +1,6 @@
 [package]
 name = "crankstart"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Rob Tsuk <rob@tsuk.com>"]
 edition = "2018"
 description = "A barely functional, wildly incomplete and basically undocumented Rust crate whose aim is to let you write games for the [Playdate handheld gaming system](https://play.date) in [Rust](https://www.rust-lang.org)."
