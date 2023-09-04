@@ -75,6 +75,7 @@ include!("bindings_aarch64.rs");
 #[cfg(target_os = "none")]
 include!("bindings_playdate.rs");
 
+#[cfg(feature = "euclid")]
 impl From<euclid::default::Rect<i32>> for LCDRect {
     fn from(r: euclid::default::Rect<i32>) -> Self {
         LCDRect {
@@ -86,12 +87,14 @@ impl From<euclid::default::Rect<i32>> for LCDRect {
     }
 }
 
+#[cfg(feature = "euclid")]
 impl From<LCDRect> for euclid::default::Rect<i32> {
     fn from(r: LCDRect) -> Self {
         euclid::rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
     }
 }
 
+#[cfg(feature = "euclid")]
 impl From<euclid::default::Rect<f32>> for PDRect {
     fn from(r: euclid::default::Rect<f32>) -> Self {
         PDRect {
@@ -103,6 +106,7 @@ impl From<euclid::default::Rect<f32>> for PDRect {
     }
 }
 
+#[cfg(feature = "euclid")]
 impl From<PDRect> for euclid::default::Rect<f32> {
     fn from(r: PDRect) -> Self {
         euclid::rect(r.x, r.y, r.width, r.height)

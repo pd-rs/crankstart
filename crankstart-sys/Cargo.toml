@@ -9,5 +9,8 @@ repository = "https://github.com/pd-rs/crankstart"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["euclid"]
+
 [dependencies]
-euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
+euclid = { version = "0.20.13", default-features = false, features = [ "libm" ], optional = true }
