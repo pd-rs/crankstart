@@ -140,6 +140,19 @@ extern "C" fn get_sprite_collision_response(
 }
 
 impl SpriteInner {
+    pub fn get_userdata<T>(&mut self) -> Result<Box<T>, Error> {
+        let ptr = pd_func_caller!((*self.playdate_sprite).getUserdata, self.raw_sprite)? as *mut T;
+        Ok(unsafe { Box::from_raw(ptr) })
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: T) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).setUserdata,
+            self.raw_sprite,
+            Box::into_raw(Box::new(userdata)) as *mut core::ffi::c_void
+        )
+    }
+
     pub fn set_use_custom_draw(&mut self) -> Result<(), Error> {
         self.set_draw_function(unsafe { SPRITE_DRAW.expect("SPRITE_DRAW") })
     }
@@ -318,6 +331,20 @@ pub struct Sprite {
 }
 
 impl Sprite {
+    pub fn get_userdata<T>(&mut self) -> Result<Box<T>, Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .get_userdata()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: T) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .set_userdata(userdata)
+    }
+
     pub fn set_use_custom_draw(&mut self) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
