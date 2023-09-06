@@ -7,7 +7,7 @@ use {
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        graphics::{rect_make, Bitmap, BitmapData, Graphics, LCDBitmapFlip, PDRect},
+        graphics::{rect_make, Bitmap, BitmapDataView, Graphics, LCDBitmapFlip, PDRect},
         log_to_console,
         sprite::{Sprite, SpriteCollider, SpriteManager},
         system::{PDButtons, System},
@@ -142,7 +142,7 @@ impl PlayerHandler {
 }
 
 struct BulletHandler {
-    bullet_image_data: BitmapData,
+    bullet_image_data: BitmapDataView,
 }
 
 impl BulletHandler {
@@ -181,7 +181,7 @@ impl BulletHandler {
 }
 
 struct EnemyPlaneHandler {
-    enemy_image_data: BitmapData,
+    enemy_image_data: BitmapDataView,
 }
 
 impl EnemyPlaneHandler {
@@ -202,7 +202,7 @@ impl EnemyPlaneHandler {
 }
 
 struct BackgroundPlaneHandler {
-    background_plane_image_data: BitmapData,
+    background_plane_image_data: BitmapDataView,
 }
 
 impl BackgroundPlaneHandler {
@@ -304,7 +304,7 @@ impl SpriteGame {
         let sprite_manager = SpriteManager::get_mut();
         let mut background = sprite_manager.new_sprite()?;
         let background_image = graphics.load_bitmap("sprite_game_images/background")?;
-        let background_image_data = background_image.get_data()?;
+        let background_image_data = background_image.get_data()?.to_view();
         let bounds = rect_make(0.0, 0.0, 400.0, 240.0);
         background.set_bounds(&bounds)?;
         background.set_z_index(0)?;
@@ -320,7 +320,7 @@ impl SpriteGame {
         // setup player
         let mut player = sprite_manager.new_sprite()?;
         let player_image = graphics.load_bitmap("sprite_game_images/player")?;
-        let player_image_data = player_image.get_data()?;
+        let player_image_data = player_image.get_data()?.to_view();
         player.set_image(player_image, LCDBitmapFlip::kBitmapUnflipped)?;
         let center_x: f32 = 200.0 - player_image_data.width as f32 / 2.0;
         let center_y: f32 = 180.0 - player_image_data.height as f32 / 2.0;
@@ -338,14 +338,14 @@ impl SpriteGame {
         player.move_to(center_x, center_y)?;
 
         let bullet_image = graphics.load_bitmap("sprite_game_images/doubleBullet")?;
-        let bullet_image_data = bullet_image.get_data()?;
+        let bullet_image_data = bullet_image.get_data()?.to_view();
 
         let enemy_plane_image = graphics.load_bitmap("sprite_game_images/plane1")?;
-        let enemy_image_data = enemy_plane_image.get_data()?;
+        let enemy_image_data = enemy_plane_image.get_data()?.to_view();
         let enemy_plane_handler = EnemyPlaneHandler { enemy_image_data };
 
         let background_plane_image = graphics.load_bitmap("sprite_game_images/plane2")?;
-        let background_plane_image_data = background_plane_image.get_data()?;
+        let background_plane_image_data = background_plane_image.get_data()?.to_view();
         let background_plane_handler = BackgroundPlaneHandler {
             background_plane_image_data,
         };
@@ -392,7 +392,7 @@ impl SpriteGame {
     fn player_fire(&mut self) -> Result<(), Error> {
         let sprite_manager = SpriteManager::get_mut();
         let player_bounds = self.player.get_bounds()?;
-        let bullet_image_data = self.bullet_image.get_data()?;
+        let bullet_image_data = self.bullet_image.get_data()?.to_view();
         let x = player_bounds.x + player_bounds.width / 2.0 - bullet_image_data.width as f32 / 2.0;
         let y = player_bounds.y;
 
@@ -444,7 +444,7 @@ impl SpriteGame {
         let sprite_manager = SpriteManager::get_mut();
         let mut plane = sprite_manager.new_sprite()?;
         plane.set_collision_response_type(Some(Box::new(OverlapCollider {})))?;
-        let plane_image_data = self.enemy_plane_image.get_data()?;
+        let plane_image_data = self.enemy_plane_image.get_data()?.to_view();
         plane.set_image(
             self.enemy_plane_image.clone(),
             LCDBitmapFlip::kBitmapUnflipped,
@@ -480,7 +480,7 @@ impl SpriteGame {
     fn create_background_plane(&mut self) -> Result<(), Error> {
         let sprite_manager = SpriteManager::get_mut();
         let mut plane = sprite_manager.new_sprite()?;
-        let plane_image_data = self.background_plane_image.get_data()?;
+        let plane_image_data = self.background_plane_image.get_data()?.to_view();
         plane.set_image(
             self.background_plane_image.clone(),
             LCDBitmapFlip::kBitmapUnflipped,
