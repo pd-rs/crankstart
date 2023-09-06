@@ -13,4 +13,4 @@ repository = "https://github.com/pd-rs/crankstart"
 default = ["euclid"]
 
 [dependencies]
-euclid = { version = "0.20.13", default-features = false, features = [ "libm" ], optional = true }
+euclid = { version = "0.22.9", default-features = false, features = [ "libm" ], optional = true }
