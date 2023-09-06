@@ -56,6 +56,7 @@ pub struct BitmapData {
 #[derive(Debug)]
 pub struct BitmapInner {
     pub(crate) raw_bitmap: *mut crankstart_sys::LCDBitmap,
+    owned: bool,
 }
 
 impl BitmapInner {
@@ -133,7 +134,10 @@ impl BitmapInner {
             // No documentation on this anywhere, but null works in testing.
             ptr::null_mut(), // allocedSize
         )?;
-        Ok(Self { raw_bitmap })
+        Ok(Self {
+            raw_bitmap,
+            owned: true,
+        })
     }
 
     pub fn tile(
@@ -165,7 +169,10 @@ impl BitmapInner {
     pub fn duplicate(&self) -> Result<Self, Error> {
         let raw_bitmap = pd_func_caller!((*Graphics::get_ptr()).copyBitmap, self.raw_bitmap)?;
 
-        Ok(Self { raw_bitmap })
+        Ok(Self {
+            raw_bitmap,
+            owned: self.owned,
+        })
     }
 
     pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
@@ -244,7 +251,9 @@ impl BitmapInner {
 
 impl Drop for BitmapInner {
     fn drop(&mut self) {
-        pd_func_caller_log!((*Graphics::get_ptr()).freeBitmap, self.raw_bitmap);
+        if self.owned {
+            pd_func_caller_log!((*Graphics::get_ptr()).freeBitmap, self.raw_bitmap);
+        }
     }
 }
 
@@ -256,9 +265,9 @@ pub struct Bitmap {
 }
 
 impl Bitmap {
-    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap) -> Self {
+    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap, owned: bool) -> Self {
         Bitmap {
-            inner: Rc::new(RefCell::new(BitmapInner { raw_bitmap })),
+            inner: Rc::new(RefCell::new(BitmapInner { raw_bitmap, owned })),
         }
     }
 
@@ -392,7 +401,7 @@ impl BitmapTableInner {
                 index,
                 self.raw_bitmap_table
             );
-            let bitmap = Bitmap::new(raw_bitmap);
+            let bitmap = Bitmap::new(raw_bitmap, true);
             self.bitmaps.insert(index, bitmap.clone());
             Ok(bitmap)
         }
@@ -522,7 +531,7 @@ impl Graphics {
             raw_bitmap != ptr::null_mut(),
             "Null pointer returned from getDebugImage"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, false))
     }
 
     pub fn get_framebuffer_bitmap(&self) -> Result<Bitmap, Error> {
@@ -531,7 +540,7 @@ impl Graphics {
             raw_bitmap != ptr::null_mut(),
             "Null pointer returned from getFrameBufferBitmap"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, true))
     }
 
     pub fn set_background_color(&self, color: LCDSolidColor) -> Result<(), Error> {
@@ -566,7 +575,7 @@ impl Graphics {
             raw_bitmap != ptr::null_mut(),
             "Null pointer returned from new_bitmap"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, true))
     }
 
     pub fn load_bitmap(&self, path: &str) -> Result<Bitmap, Error> {
@@ -583,7 +592,7 @@ impl Graphics {
                 ))
             }
         } else {
-            Ok(Bitmap::new(raw_bitmap))
+            Ok(Bitmap::new(raw_bitmap, true))
         }
     }
 
