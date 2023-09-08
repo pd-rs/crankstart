@@ -140,16 +140,23 @@ extern "C" fn get_sprite_collision_response(
 }
 
 impl SpriteInner {
-    pub fn get_userdata<T>(&mut self) -> Result<Box<T>, Error> {
-        let ptr = pd_func_caller!((*self.playdate_sprite).getUserdata, self.raw_sprite)? as *mut T;
-        Ok(unsafe { Box::from_raw(ptr) })
+    pub fn get_userdata<T>(&mut self) -> Result<Rc<T>, Error> {
+        let ptr =
+            pd_func_caller!((*self.playdate_sprite).getUserdata, self.raw_sprite)? as *const T;
+
+        let rc = unsafe { Rc::from_raw(ptr) };
+
+        unsafe { Rc::increment_strong_count(Rc::as_ptr(&rc)) }
+        Ok(rc)
     }
 
-    pub fn set_userdata<T>(&mut self, userdata: T) -> Result<(), Error> {
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>) -> Result<(), Error> {
+        let ptr = Rc::into_raw(userdata);
+
         pd_func_caller!(
             (*self.playdate_sprite).setUserdata,
             self.raw_sprite,
-            Box::into_raw(Box::new(userdata)) as *mut core::ffi::c_void
+            ptr as *mut core::ffi::c_void
         )
     }
 
@@ -331,14 +338,14 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub fn get_userdata<T>(&mut self) -> Result<Box<T>, Error> {
+    pub fn get_userdata<T>(&self) -> Result<Rc<T>, Error> {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
             .get_userdata()
     }
 
-    pub fn set_userdata<T>(&mut self, userdata: T) -> Result<(), Error> {
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
