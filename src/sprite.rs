@@ -140,9 +140,12 @@ extern "C" fn get_sprite_collision_response(
 }
 
 impl SpriteInner {
-    pub fn get_userdata<T>(&mut self) -> Result<Rc<T>, Error> {
+    pub fn get_userdata<T>(&mut self) -> Result<Rc<Box<T>>, Error>
+    where
+        T: Userdata,
+    {
         let ptr =
-            pd_func_caller!((*self.playdate_sprite).getUserdata, self.raw_sprite)? as *const T;
+            pd_func_caller!((*self.playdate_sprite).getUserdata, self.raw_sprite)? as *const Box<T>;
 
         let rc = unsafe { Rc::from_raw(ptr) };
 
@@ -150,7 +153,10 @@ impl SpriteInner {
         Ok(rc)
     }
 
-    pub fn set_userdata<T>(&mut self, userdata: Rc<T>) -> Result<(), Error> {
+    pub fn set_userdata<T>(&mut self, userdata: Rc<Box<T>>) -> Result<(), Error>
+    where
+        T: Userdata,
+    {
         let ptr = Rc::into_raw(userdata);
 
         pd_func_caller!(
@@ -307,8 +313,30 @@ impl SpriteInner {
     }
 }
 
+pub trait Userdata {}
+
 impl Drop for SpriteInner {
     fn drop(&mut self) {
+        fn free_userdata(sprite: &SpriteInner) -> Result<(), Error> {
+            let ptr = pd_func_caller!((*sprite.playdate_sprite).getUserdata, sprite.raw_sprite)?;
+
+            if ptr as *const _ == core::ptr::null() {
+                // No userdata on this sprite, nothing to do
+                return Ok(());
+            }
+
+            let rc = unsafe { Rc::from_raw(ptr as *const Box<dyn Userdata>) };
+
+            // Just for clarity, we're dropping the rc which will decrease the strong count
+            drop(rc);
+
+            Ok(())
+        }
+
+        if let Err(err) = free_userdata(self) {
+            log_to_console!("error dropping userdata: {}", err);
+        }
+
         pd_func_caller_log!((*self.playdate_sprite).freeSprite, self.raw_sprite);
         unsafe {
             if let Some(collision_responses) = SPRITE_COLLISION_RESPONSES.as_mut() {
@@ -338,14 +366,20 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub fn get_userdata<T>(&self) -> Result<Rc<T>, Error> {
+    pub fn get_userdata<T>(&self) -> Result<Rc<Box<T>>, Error>
+    where
+        T: Userdata,
+    {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
             .get_userdata()
     }
 
-    pub fn set_userdata<T>(&mut self, userdata: Rc<T>) -> Result<(), Error> {
+    pub fn set_userdata<T>(&mut self, userdata: Rc<Box<T>>) -> Result<(), Error>
+    where
+        T: Userdata,
+    {
         self.inner
             .try_borrow_mut()
             .map_err(Error::msg)?
@@ -525,6 +559,17 @@ impl SpriteManager {
     pub fn add_sprite(&self, sprite: &Sprite) -> Result<(), Error> {
         pd_func_caller!(
             (*self.playdate_sprite).addSprite,
+            sprite.inner.borrow().raw_sprite
+        )
+    }
+
+    pub fn get_sprite_count(&self) -> Result<i32, Error> {
+        pd_func_caller!((*self.playdate_sprite).getSpriteCount)
+    }
+
+    pub fn remove_sprite(&self, sprite: &Sprite) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).removeSprite,
             sprite.inner.borrow().raw_sprite
         )
     }
