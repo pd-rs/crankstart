@@ -457,19 +457,25 @@ impl Bitmap {
     }
 
     pub fn get_data(&self) -> Result<BitmapData<'_>, Error> {
-        BitmapInner::get_data(self.inner.borrow())
+        BitmapInner::get_data(self.inner.try_borrow().map_err(Error::msg)?)
     }
 
     pub fn get_data_mut(&mut self) -> Result<BitmapDataMut<'_>, Error> {
-        BitmapInner::get_data_mut(self.inner.borrow_mut())
+        BitmapInner::get_data_mut(self.inner.try_borrow_mut().map_err(Error::msg)?)
     }
 
     pub fn draw(&self, location: ScreenPoint, flip: LCDBitmapFlip) -> Result<(), Error> {
-        self.inner.borrow().draw(location, flip)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .draw(location, flip)
     }
 
     pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
-        self.inner.borrow().draw_scaled(location, scale)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .draw_scaled(location, scale)
     }
 
     /// Draw the `Bitmap` to the given `location`, rotated `degrees` about the `center` point,
@@ -483,13 +489,18 @@ impl Bitmap {
         scale: Vector2D<f32>,
     ) -> Result<(), Error> {
         self.inner
-            .borrow()
+            .try_borrow()
+            .map_err(Error::msg)?
             .draw_rotated(location, degrees, center, scale)
     }
 
     /// Return a copy of self, rotated by `degrees` and scaled up or down in size by `scale`.
     pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
-        let raw_bitmap = self.inner.borrow().rotated(degrees, scale)?;
+        let raw_bitmap = self
+            .inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .rotated(degrees, scale)?;
         Ok(Self {
             inner: Rc::new(RefCell::new(raw_bitmap)),
         })
@@ -501,26 +512,39 @@ impl Bitmap {
         size: ScreenSize,
         flip: LCDBitmapFlip,
     ) -> Result<(), Error> {
-        self.inner.borrow().tile(location, size, flip)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .tile(location, size, flip)
     }
 
     pub fn clear(&mut self, color: LCDColor) -> Result<(), Error> {
-        self.inner.borrow_mut().clear(color)
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .clear(color)
     }
 
     pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
-        let inner = self.inner.borrow().transform(rotation, scale)?;
+        let inner = self
+            .inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .transform(rotation, scale)?;
         Ok(Self {
             inner: Rc::new(RefCell::new(inner)),
         })
     }
 
     pub fn into_color(&self, bitmap: Bitmap, top_left: Point2D<i32>) -> Result<LCDColor, Error> {
-        self.inner.borrow().into_color(bitmap, top_left)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .into_color(bitmap, top_left)
     }
 
     pub fn load(&mut self, path: &str) -> Result<(), Error> {
-        self.inner.borrow_mut().load(path)
+        self.inner.try_borrow_mut().map_err(Error::msg)?.load(path)
     }
 
     pub fn check_mask_collision(
@@ -532,14 +556,17 @@ impl Bitmap {
         other_flip: LCDBitmapFlip,
         rect: ScreenRect,
     ) -> Result<bool, Error> {
-        self.inner.borrow().check_mask_collision(
-            my_location,
-            my_flip,
-            other,
-            other_location,
-            other_flip,
-            rect,
-        )
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .check_mask_collision(
+                my_location,
+                my_flip,
+                other,
+                other_location,
+                other_flip,
+                rect,
+            )
     }
 }
 
