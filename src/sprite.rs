@@ -140,7 +140,7 @@ extern "C" fn get_sprite_collision_response(
 }
 
 impl SpriteInner {
-    pub fn get_userdata<T>(&mut self) -> Result<Rc<Box<T>>, Error>
+    pub fn get_userdata<T>(&self) -> Result<Rc<Box<T>>, Error>
     where
         T: Userdata,
     {
@@ -370,10 +370,7 @@ impl Sprite {
     where
         T: Userdata,
     {
-        self.inner
-            .try_borrow_mut()
-            .map_err(Error::msg)?
-            .get_userdata()
+        self.inner.try_borrow().map_err(Error::msg)?.get_userdata()
     }
 
     pub fn set_userdata<T>(&mut self, userdata: Rc<Box<T>>) -> Result<(), Error>
