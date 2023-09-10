@@ -495,6 +495,17 @@ impl SpriteManager {
         )
     }
 
+    pub fn get_sprite_count(&self) -> Result<i32, Error> {
+        pd_func_caller!((*self.playdate_sprite).getSpriteCount)
+    }
+
+    pub fn remove_sprite(&mut self, sprite: &Sprite) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).removeSprite,
+            sprite.inner.borrow_mut().raw_sprite
+        )
+    }
+
     pub fn add_dirty_rect(dirty_rect: LCDRect) -> Result<(), Error> {
         pd_func_caller!((*Self::get_mut().playdate_sprite).addDirtyRect, dirty_rect)
     }
