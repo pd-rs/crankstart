@@ -116,6 +116,7 @@ pub struct SpriteInner {
     pub raw_sprite: *mut crankstart_sys::LCDSprite,
     playdate_sprite: *const playdate_sprite,
     image: Option<Bitmap>,
+    userdata: Option<Rc<dyn core::any::Any>>,
 }
 
 pub type SpritePtr = Rc<RefCell<SpriteInner>>;
@@ -285,6 +286,32 @@ impl SpriteInner {
     pub fn mark_dirty(&mut self) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).markDirty, self.raw_sprite,)
     }
+
+    pub fn get_userdata<T>(&self) -> Result<Option<Rc<T>>, Error>
+    where
+        T: 'static,
+    {
+        self.userdata
+            .as_ref()
+            .map(
+                |userdata: &Rc<dyn core::any::Any>| -> Result<Rc<T>, Error> {
+                    userdata.clone().downcast::<T>().map_err(|err| {
+                        anyhow!(
+                            "Failed to cast userdata type {}",
+                            core::any::type_name::<T>(),
+                        )
+                    })
+                },
+            )
+            .transpose()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>)
+    where
+        T: 'static,
+    {
+        self.userdata = Some(userdata);
+    }
 }
 
 impl Drop for SpriteInner {
@@ -424,6 +451,20 @@ impl Sprite {
             .map_err(Error::msg)?
             .mark_dirty()
     }
+
+    pub fn get_userdata<T>(&self) -> Result<Option<Rc<T>>, Error>
+    where
+        T: 'static,
+    {
+        self.inner.borrow().get_userdata()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>)
+    where
+        T: 'static,
+    {
+        self.inner.borrow_mut().set_userdata(userdata)
+    }
 }
 
 impl Hash for Sprite {
@@ -479,6 +520,7 @@ impl SpriteManager {
                 raw_sprite,
                 playdate_sprite: self.playdate_sprite,
                 image: None,
+                userdata: None,
             };
             sprite.set_update_function(unsafe { SPRITE_UPDATE.expect("SPRITE_UPDATE") })?;
             let sprite_ptr = Rc::new(RefCell::new(sprite));
