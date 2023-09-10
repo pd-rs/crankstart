@@ -315,9 +315,37 @@ impl PartialEq for SpriteInner {
 #[derive(Clone, Debug)]
 pub struct Sprite {
     inner: SpritePtr,
+    userdata: Option<Rc<dyn core::any::Any>>,
 }
 
 impl Sprite {
+    pub fn get_userdata<T>(&self) -> Result<Option<Rc<T>>, Error>
+    where
+        T: 'static,
+    {
+        self.userdata
+            .as_ref()
+            .map(
+                |userdata: &Rc<dyn core::any::Any>| -> Result<Rc<T>, Error> {
+                    let cast = userdata.downcast_ref::<Rc<T>>().ok_or_else(|| {
+                        anyhow!(
+                            "Failed to cast userdata type {}",
+                            core::any::type_name::<T>()
+                        )
+                    });
+                    cast.map(Rc::clone)
+                },
+            )
+            .transpose()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: T)
+    where
+        T: 'static,
+    {
+        self.userdata = Some(Rc::new(userdata));
+    }
+
     pub fn set_use_custom_draw(&mut self) -> Result<(), Error> {
         self.inner
             .try_borrow_mut()
@@ -484,7 +512,10 @@ impl SpriteManager {
             let sprite_ptr = Rc::new(RefCell::new(sprite));
             let weak_ptr = Rc::downgrade(&sprite_ptr);
             self.sprites.insert(raw_sprite, weak_ptr);
-            Ok(Sprite { inner: sprite_ptr })
+            Ok(Sprite {
+                inner: sprite_ptr,
+                userdata: None,
+            })
         }
     }
 
@@ -492,6 +523,17 @@ impl SpriteManager {
         pd_func_caller!(
             (*self.playdate_sprite).addSprite,
             sprite.inner.borrow().raw_sprite
+        )
+    }
+
+    pub fn get_sprite_count(&self) -> Result<i32, Error> {
+        pd_func_caller!((*self.playdate_sprite).getSpriteCount)
+    }
+
+    pub fn remove_sprite(&mut self, sprite: &Sprite) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).removeSprite,
+            sprite.inner.borrow_mut().raw_sprite
         )
     }
 
@@ -510,6 +552,7 @@ impl SpriteManager {
             .and_then(|inner_ptr| {
                 Some(Sprite {
                     inner: inner_ptr.clone(),
+                    userdata: None,
                 })
             })
     }
