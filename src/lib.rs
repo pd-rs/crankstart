@@ -116,6 +116,10 @@ pub trait Game {
     fn draw_fps(&self) -> bool {
         false
     }
+
+    fn draw_and_update_sprites(&self) -> bool {
+        true
+    }
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -145,11 +149,16 @@ impl<T: 'static + Game> GameRunner<T> {
                 Err(err) => log_to_console!("Error in update: {}", err),
                 _ => (),
             }
-            match SpriteManager::get_mut().update_and_draw_sprites() {
-                Err(err) => {
-                    log_to_console!("Error from sprite_manager.update_and_draw_sprites: {}", err)
+            if game.draw_and_update_sprites() {
+                match SpriteManager::get_mut().update_and_draw_sprites() {
+                    Err(err) => {
+                        log_to_console!(
+                            "Error from sprite_manager.update_and_draw_sprites: {}",
+                            err
+                        )
+                    }
+                    _ => (),
                 }
-                _ => (),
             }
             if game.draw_fps() {
                 match System::get().draw_fps(0, 0) {
