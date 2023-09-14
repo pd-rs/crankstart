@@ -4,7 +4,7 @@ use {
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
     },
-    alloc::{format, rc::Rc},
+    alloc::{format, rc::Rc, vec::Vec},
     anyhow::{anyhow, ensure, Error},
     core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
     crankstart_sys::{ctypes::c_int, LCDBitmapTable, LCDPattern},
@@ -14,8 +14,8 @@ use {
 };
 
 pub use crankstart_sys::{
-    LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDRect, LCDSolidColor, PDRect,
-    PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
+    LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDPolygonFillRule, LCDRect, LCDSolidColor,
+    PDRect, PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
 };
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
@@ -646,6 +646,30 @@ impl Graphics {
             width,
             color.into(),
         )
+    }
+
+    pub fn fill_polygon(
+        &self,
+        coords: &[ScreenPoint],
+        color: LCDColor,
+        fillrule: LCDPolygonFillRule,
+    ) -> Result<(), Error> {
+        let n_pts = coords.len();
+        let mut coords_seq = coords
+            .iter()
+            .map(|pt| [pt.x, pt.y])
+            .flatten()
+            .collect::<alloc::vec::Vec<_>>();
+
+        pd_func_caller!(
+            (*self.0).fillPolygon,
+            n_pts as i32,
+            coords_seq.as_mut_ptr() as *mut i32,
+            color.into(),
+            fillrule
+        )?;
+
+        Ok(())
     }
 
     pub fn fill_triangle(
