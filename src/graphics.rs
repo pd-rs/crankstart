@@ -715,7 +715,7 @@ impl Graphics {
 
     pub fn draw_ellipse(
         &self,
-        center: ScreenPoint,
+        origin: ScreenPoint,
         size: ScreenSize,
         line_width: i32,
         start_angle: f32,
@@ -724,8 +724,8 @@ impl Graphics {
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawEllipse,
-            center.x,
-            center.y,
+            origin.x,
+            origin.y,
             size.width,
             size.height,
             line_width,
@@ -739,7 +739,7 @@ impl Graphics {
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        center: ScreenPoint,
+        origin: ScreenPoint,
         size: ScreenSize,
         line_width: i32,
         start_angle: f32,
@@ -749,8 +749,8 @@ impl Graphics {
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillEllipse,
-            center.x,
-            center.y,
+            origin.x,
+            origin.y,
             size.width,
             size.height,
             start_angle,
