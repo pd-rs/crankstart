@@ -144,7 +144,23 @@ impl System {
         Ok(pd_func_caller!((*self.0).getElapsedTime)? as f32)
     }
 
+    pub fn get_flipped(&self) -> Result<bool, Error> {
+        Ok(pd_func_caller!((*self.0).getFlipped)? != 0)
+    }
+
+    pub fn get_reduced_flashing(&self) -> Result<bool, Error> {
+        Ok(pd_func_caller!((*self.0).getReduceFlashing)? != 0)
+    }
+
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {
         pd_func_caller!((*self.0).drawFPS, x, y)
+    }
+
+    pub fn get_battery_percentage(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getBatteryPercentage)
+    }
+
+    pub fn get_battery_voltage(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getBatteryVoltage)
     }
 }
