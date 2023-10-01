@@ -58,6 +58,15 @@ impl System {
         pd_func_caller!((*self.0).getCrankChange,)
     }
 
+    pub fn set_crank_sound_disabled(&self, disable: bool) -> Result<bool, Error> {
+        let last = pd_func_caller!((*self.0).setCrankSoundsDisabled, disable as i32)?;
+        Ok(last != 0)
+    }
+
+    pub fn set_auto_lock_disabled(&self, disable: bool) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setAutoLockDisabled, disable as i32)
+    }
+
     pub fn log_to_console(text: &str) {
         unsafe {
             if SYSTEM.0 != ptr::null_mut() {
