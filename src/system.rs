@@ -5,6 +5,7 @@ use {
 
 use crankstart_sys::ctypes::c_int;
 pub use crankstart_sys::PDButtons;
+use crankstart_sys::PDDateTime;
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
@@ -115,6 +116,24 @@ impl System {
 
     pub fn get_current_time_milliseconds(&self) -> Result<usize, Error> {
         Ok(pd_func_caller!((*self.0).getCurrentTimeMilliseconds)? as usize)
+    }
+
+    pub fn get_timezone_offset(&self) -> Result<i32, Error> {
+        pd_func_caller!((*self.0).getTimezoneOffset)
+    }
+
+    pub fn convert_epoch_to_datetime(&self, epoch: u32) -> Result<PDDateTime, Error> {
+        let mut datetime = PDDateTime::default();
+        pd_func_caller!((*self.0).convertEpochToDateTime, epoch, &mut datetime)?;
+        Ok(datetime)
+    }
+
+    pub fn convert_datetime_to_epoch(&self, datetime: &mut PDDateTime) -> Result<usize, Error> {
+        Ok(pd_func_caller!((*self.0).convertDateTimeToEpoch, datetime)? as usize)
+    }
+
+    pub fn should_display_24_hour_time(&self) -> Result<bool, Error> {
+        Ok(pd_func_caller!((*self.0).shouldDisplay24HourTime)? != 0)
     }
 
     pub fn reset_elapsed_time(&self) -> Result<(), Error> {
