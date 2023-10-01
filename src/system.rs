@@ -5,7 +5,7 @@ use {
 
 use crankstart_sys::ctypes::c_int;
 pub use crankstart_sys::PDButtons;
-use crankstart_sys::PDDateTime;
+use crankstart_sys::{PDDateTime, PDLanguage, PDPeripherals};
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
@@ -45,6 +45,18 @@ impl System {
             &mut released
         )?;
         Ok((current, pushed, released))
+    }
+
+    pub fn set_peripherals_enabled(&self, peripherals: PDPeripherals) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setPeripheralsEnabled, peripherals)
+    }
+
+    pub fn get_accelerometer(&self) -> Result<(f32, f32, f32), Error> {
+        let mut outx = 0.0;
+        let mut outy = 0.0;
+        let mut outz = 0.0;
+        pd_func_caller!((*self.0).getAccelerometer, &mut outx, &mut outy, &mut outz)?;
+        Ok((outx, outy, outz))
     }
 
     pub fn is_crank_docked(&self) -> Result<bool, Error> {
@@ -162,5 +174,9 @@ impl System {
 
     pub fn get_battery_voltage(&self) -> Result<f32, Error> {
         pd_func_caller!((*self.0).getBatteryVoltage)
+    }
+
+    pub fn get_language(&self) -> Result<PDLanguage, Error> {
+        pd_func_caller!((*self.0).getLanguage)
     }
 }
