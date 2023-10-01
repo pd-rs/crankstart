@@ -153,7 +153,7 @@ impl System {
     }
 
     pub fn get_elapsed_time(&self) -> Result<f32, Error> {
-        Ok(pd_func_caller!((*self.0).getElapsedTime)? as f32)
+        pd_func_caller!((*self.0).getElapsedTime)
     }
 
     pub fn get_flipped(&self) -> Result<bool, Error> {
