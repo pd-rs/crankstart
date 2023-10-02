@@ -292,12 +292,10 @@ fn abort_with_addr(addr: usize) -> ! {
 
 #[panic_handler]
 fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
-    use {
-        core::fmt::Write,
-        heapless::{consts::*, String},
-    };
+    use arrayvec::ArrayString;
+    use core::fmt::Write;
     if let Some(location) = panic_info.location() {
-        let mut output: String<U1024> = String::new();
+        let mut output = ArrayString::<1024>::new();
         let payload = if let Some(payload) = panic_info.payload().downcast_ref::<&str>() {
             payload
         } else {
