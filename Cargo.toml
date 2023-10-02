@@ -44,10 +44,10 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 anyhow = { version = "1.0.31", default-features = false }
+arrayvec = { version = "0.7.4", default-features = false }
 crankstart-sys = { version = "0.1.2", path = "crankstart-sys" }
 euclid = { version = "0.22.9", default-features = false, features = [ "libm" ] }
 hashbrown = "0.14.0"
-heapless = "0.6.1"
 
 [dev-dependencies]
 randomize = "3.0.1"
