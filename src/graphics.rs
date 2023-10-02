@@ -6,7 +6,12 @@ use {
     },
     alloc::{format, rc::Rc, vec::Vec},
     anyhow::{anyhow, ensure, Error},
-    core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
+    core::{
+        cell::{Ref, RefCell, RefMut},
+        convert::TryFrom,
+        ops::RangeInclusive,
+        ptr, slice,
+    },
     crankstart_sys::{ctypes::c_int, LCDBitmapTable, LCDPattern},
     cstr_core::{CStr, CString},
     euclid::default::{Point2D, Vector2D},
@@ -46,11 +51,170 @@ impl From<LCDColor> for usize {
 }
 
 #[derive(Debug)]
-pub struct BitmapData {
+pub struct BitmapDataView {
     pub width: c_int,
     pub height: c_int,
     pub rowbytes: c_int,
     pub hasmask: bool,
+}
+
+#[derive(Debug)]
+pub struct BitmapData<'bitmap> {
+    width: c_int,
+    height: c_int,
+    rowbytes: c_int,
+    mask: Option<*const u8>,
+    data: *const u8,
+    inner: Ref<'bitmap, BitmapInner>,
+}
+
+impl BitmapData<'_> {
+    /// Create a view of the bitmap data that can be stored without the `'bitmap` lifetime.
+    pub fn to_view(&self) -> BitmapDataView {
+        BitmapDataView {
+            width: self.width,
+            height: self.height,
+            rowbytes: self.rowbytes,
+            hasmask: self.hasmask(),
+        }
+    }
+
+    /// Getter method for the bitmap width.
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    /// Getter method for the bitmap height.
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
+    /// Getter method for the bitmap bytes-per-row count.
+    pub fn rowbytes(&self) -> i32 {
+        self.rowbytes
+    }
+
+    /// Check if the bitmap has a mask.
+    pub fn hasmask(&self) -> bool {
+        self.mask.is_some()
+    }
+
+    /// Get access to the bitmap pixels.
+    pub fn pixels(&self) -> &[u8] {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height).unwrap()).unwrap();
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        unsafe { &*ptr::slice_from_raw_parts(self.data, length) }
+    }
+
+    /// Get access to the bitmap mask data (if any).
+    pub fn mask(&self) -> Option<&[u8]> {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height)?).ok()?;
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        self.mask
+            .map(|mask| unsafe { &*ptr::slice_from_raw_parts(mask, length) })
+    }
+}
+
+#[derive(Debug)]
+pub struct BitmapDataMut<'bitmap> {
+    width: c_int,
+    height: c_int,
+    rowbytes: c_int,
+    mask: Option<*mut u8>,
+    data: *mut u8,
+    inner: RefMut<'bitmap, BitmapInner>,
+}
+
+impl BitmapDataMut<'_> {
+    /// Create a view of the bitmap data that can be stored without the `'bitmap` lifetime.
+    pub fn to_view(&self) -> BitmapDataView {
+        BitmapDataView {
+            width: self.width,
+            height: self.height,
+            rowbytes: self.rowbytes,
+            hasmask: self.hasmask(),
+        }
+    }
+
+    /// Getter method for the bitmap width.
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    /// Getter method for the bitmap height.
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
+    /// Getter method for the bitmap bytes-per-row count.
+    pub fn rowbytes(&self) -> i32 {
+        self.rowbytes
+    }
+
+    /// Check if the bitmap has a mask.
+    pub fn hasmask(&self) -> bool {
+        self.mask.is_some()
+    }
+
+    /// Get access to the bitmap pixels.
+    pub fn pixels(&self) -> &[u8] {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height).unwrap()).unwrap();
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        unsafe { &*ptr::slice_from_raw_parts(self.data, length) }
+    }
+
+    /// Get mutable access to the bitmap pixels.
+    pub fn pixels_mut(&mut self) -> &mut [u8] {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height).unwrap()).unwrap();
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        unsafe { &mut *ptr::slice_from_raw_parts_mut(self.data, length) }
+    }
+
+    /// Get access to the bitmap mask data (if any).
+    pub fn mask(&self) -> Option<&[u8]> {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height)?).ok()?;
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        self.mask
+            .map(|mask| unsafe { &*ptr::slice_from_raw_parts(mask, length) })
+    }
+
+    /// Get mutable access to the bitmap mask data (if any).
+    pub fn mask_mut(&mut self) -> Option<&mut [u8]> {
+        // Carefully construct the buffer length, ensuring no integer overflow is possible.
+        let length = usize::try_from(self.rowbytes.checked_mul(self.height)?).ok()?;
+
+        // SAFETY: The length of the slice does not overflow the buffer size. This invariant is
+        // enforced by making `self.rowbytes` and `self.height` read-only, and trusting that the
+        // values returned by the Playdate SDK are valid. The slice lives at least at long as the
+        // owning `Bitmap`, enforced by the 'bitmap lifetime.
+        self.mask
+            .map(|mask| unsafe { &mut *ptr::slice_from_raw_parts_mut(mask, length) })
+    }
 }
 
 #[derive(Debug)]
@@ -60,25 +224,55 @@ pub struct BitmapInner {
 }
 
 impl BitmapInner {
-    pub fn get_data(&self) -> Result<BitmapData, Error> {
+    fn get_data(inner: Ref<'_, Self>) -> Result<BitmapData<'_>, Error> {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
         let mut mask_ptr = ptr::null_mut();
+        let mut data_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
-            self.raw_bitmap,
+            inner.raw_bitmap,
             &mut width,
             &mut height,
             &mut rowbytes,
             &mut mask_ptr,
-            ptr::null_mut(),
+            &mut data_ptr,
         )?;
+
         Ok(BitmapData {
             width,
             height,
             rowbytes,
-            hasmask: mask_ptr != ptr::null_mut(),
+            mask: (!mask_ptr.is_null()).then_some(mask_ptr),
+            data: data_ptr,
+            inner,
+        })
+    }
+
+    fn get_data_mut(inner: RefMut<'_, Self>) -> Result<BitmapDataMut<'_>, Error> {
+        let mut width = 0;
+        let mut height = 0;
+        let mut rowbytes = 0;
+        let mut mask_ptr = ptr::null_mut();
+        let mut data_ptr = ptr::null_mut();
+        pd_func_caller!(
+            (*Graphics::get_ptr()).getBitmapData,
+            inner.raw_bitmap,
+            &mut width,
+            &mut height,
+            &mut rowbytes,
+            &mut mask_ptr,
+            &mut data_ptr,
+        )?;
+
+        Ok(BitmapDataMut {
+            width,
+            height,
+            rowbytes,
+            mask: (!mask_ptr.is_null()).then_some(mask_ptr),
+            data: data_ptr,
+            inner,
         })
     }
 
@@ -158,7 +352,7 @@ impl BitmapInner {
         Ok(())
     }
 
-    pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
+    pub fn clear(&mut self, color: LCDColor) -> Result<(), Error> {
         pd_func_caller!(
             (*Graphics::get_ptr()).clearBitmap,
             self.raw_bitmap,
@@ -203,7 +397,7 @@ impl BitmapInner {
         Ok(LCDColor::Pattern(pattern))
     }
 
-    pub fn load(&self, path: &str) -> Result<(), Error> {
+    pub fn load(&mut self, path: &str) -> Result<(), Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let graphics = Graphics::get();
@@ -271,16 +465,26 @@ impl Bitmap {
         }
     }
 
-    pub fn get_data(&self) -> Result<BitmapData, Error> {
-        self.inner.borrow().get_data()
+    pub fn get_data(&self) -> Result<BitmapData<'_>, Error> {
+        BitmapInner::get_data(self.inner.try_borrow().map_err(Error::msg)?)
+    }
+
+    pub fn get_data_mut(&mut self) -> Result<BitmapDataMut<'_>, Error> {
+        BitmapInner::get_data_mut(self.inner.try_borrow_mut().map_err(Error::msg)?)
     }
 
     pub fn draw(&self, location: ScreenPoint, flip: LCDBitmapFlip) -> Result<(), Error> {
-        self.inner.borrow().draw(location, flip)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .draw(location, flip)
     }
 
     pub fn draw_scaled(&self, location: ScreenPoint, scale: Vector2D<f32>) -> Result<(), Error> {
-        self.inner.borrow().draw_scaled(location, scale)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .draw_scaled(location, scale)
     }
 
     /// Draw the `Bitmap` to the given `location`, rotated `degrees` about the `center` point,
@@ -294,13 +498,18 @@ impl Bitmap {
         scale: Vector2D<f32>,
     ) -> Result<(), Error> {
         self.inner
-            .borrow()
+            .try_borrow()
+            .map_err(Error::msg)?
             .draw_rotated(location, degrees, center, scale)
     }
 
     /// Return a copy of self, rotated by `degrees` and scaled up or down in size by `scale`.
     pub fn rotated(&self, degrees: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
-        let raw_bitmap = self.inner.borrow().rotated(degrees, scale)?;
+        let raw_bitmap = self
+            .inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .rotated(degrees, scale)?;
         Ok(Self {
             inner: Rc::new(RefCell::new(raw_bitmap)),
         })
@@ -312,26 +521,39 @@ impl Bitmap {
         size: ScreenSize,
         flip: LCDBitmapFlip,
     ) -> Result<(), Error> {
-        self.inner.borrow().tile(location, size, flip)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .tile(location, size, flip)
     }
 
-    pub fn clear(&self, color: LCDColor) -> Result<(), Error> {
-        self.inner.borrow().clear(color)
+    pub fn clear(&mut self, color: LCDColor) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .clear(color)
     }
 
     pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Bitmap, Error> {
-        let inner = self.inner.borrow().transform(rotation, scale)?;
+        let inner = self
+            .inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .transform(rotation, scale)?;
         Ok(Self {
             inner: Rc::new(RefCell::new(inner)),
         })
     }
 
     pub fn into_color(&self, bitmap: Bitmap, top_left: Point2D<i32>) -> Result<LCDColor, Error> {
-        self.inner.borrow().into_color(bitmap, top_left)
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .into_color(bitmap, top_left)
     }
 
-    pub fn load(&self, path: &str) -> Result<(), Error> {
-        self.inner.borrow().load(path)
+    pub fn load(&mut self, path: &str) -> Result<(), Error> {
+        self.inner.try_borrow_mut().map_err(Error::msg)?.load(path)
     }
 
     pub fn check_mask_collision(
@@ -343,14 +565,17 @@ impl Bitmap {
         other_flip: LCDBitmapFlip,
         rect: ScreenRect,
     ) -> Result<bool, Error> {
-        self.inner.borrow().check_mask_collision(
-            my_location,
-            my_flip,
-            other,
-            other_location,
-            other_flip,
-            rect,
-        )
+        self.inner
+            .try_borrow()
+            .map_err(Error::msg)?
+            .check_mask_collision(
+                my_location,
+                my_flip,
+                other,
+                other_location,
+                other_flip,
+                rect,
+            )
     }
 }
 
