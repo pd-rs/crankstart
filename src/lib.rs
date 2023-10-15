@@ -9,6 +9,7 @@ pub mod display;
 pub mod file;
 pub mod geometry;
 pub mod graphics;
+pub mod lua;
 pub mod sound;
 pub mod sprite;
 pub mod system;
@@ -18,6 +19,7 @@ use {
         display::Display,
         file::FileSystem,
         graphics::{Graphics, PDRect},
+        lua::Lua,
         sound::Sound,
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
@@ -48,6 +50,8 @@ impl Playdate {
         FileSystem::new(file);
         let graphics = unsafe { (*playdate).graphics };
         Graphics::new(graphics);
+        let lua = unsafe { (*playdate).lua };
+        Lua::new(lua);
         let sound = unsafe { (*playdate).sound };
         Sound::new(sound)?;
         let display = unsafe { (*playdate).display };
