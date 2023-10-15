@@ -40,17 +40,18 @@ impl Playdate {
         sprite_update: SpriteUpdateFunction,
         sprite_draw: SpriteDrawFunction,
     ) -> Result<Self, Error> {
-        let system = unsafe { (*playdate).system };
+        let playdate_api = unsafe { *playdate };
+        let system = playdate_api.system;
         System::new(system);
-        let playdate_sprite = unsafe { (*playdate).sprite };
+        let playdate_sprite = playdate_api.sprite;
         SpriteManager::new(playdate_sprite, sprite_update, sprite_draw);
-        let file = unsafe { (*playdate).file };
+        let file = playdate_api.file;
         FileSystem::new(file);
-        let graphics = unsafe { (*playdate).graphics };
+        let graphics = playdate_api.graphics;
         Graphics::new(graphics);
-        let sound = unsafe { (*playdate).sound };
+        let sound = playdate_api.sound;
         Sound::new(sound)?;
-        let display = unsafe { (*playdate).display };
+        let display = playdate_api.display;
         Display::new(display);
         Ok(Self { playdate })
     }
@@ -88,7 +89,7 @@ macro_rules! pd_func_caller_log {
             if let Some(raw_fn) = $raw_fn_opt {
                 raw_fn($($arg)*);
             } else {
-                crate::log_to_console!("{} did not contain a function pointer", stringify!($raw_fn_opt));
+                $crate::log_to_console!("{} did not contain a function pointer", stringify!($raw_fn_opt));
             }
         }
     };
@@ -145,25 +146,17 @@ impl<T: 'static + Game> GameRunner<T> {
         }
 
         if let Some(game) = self.game.as_mut() {
-            match game.update(&mut self.playdate) {
-                Err(err) => log_to_console!("Error in update: {}", err),
-                _ => (),
+            if let Err(err) = game.update(&mut self.playdate) {
+                log_to_console!("Error in update: {}", err)
             }
             if game.draw_and_update_sprites() {
-                match SpriteManager::get_mut().update_and_draw_sprites() {
-                    Err(err) => {
-                        log_to_console!(
-                            "Error from sprite_manager.update_and_draw_sprites: {}",
-                            err
-                        )
-                    }
-                    _ => (),
+                if let Err(err) = SpriteManager::get_mut().update_and_draw_sprites() {
+                    log_to_console!("Error from sprite_manager.update_and_draw_sprites: {}", err)
                 }
             }
             if game.draw_fps() {
-                match System::get().draw_fps(0, 0) {
-                    Err(err) => log_to_console!("Error from system().draw_fps: {}", err),
-                    _ => (),
+                if let Err(err) = System::get().draw_fps(0, 0) {
+                    log_to_console!("Error from system().draw_fps: {}", err)
                 }
             }
         } else {
@@ -175,9 +168,8 @@ impl<T: 'static + Game> GameRunner<T> {
     pub fn update_sprite(&mut self, sprite: *mut LCDSprite) {
         if let Some(game) = self.game.as_mut() {
             if let Some(mut sprite) = SpriteManager::get_mut().get_sprite(sprite) {
-                match game.update_sprite(&mut sprite, &mut self.playdate) {
-                    Err(err) => log_to_console!("Error in update_sprite: {}", err),
-                    _ => (),
+                if let Err(err) = game.update_sprite(&mut sprite, &mut self.playdate) {
+                    log_to_console!("Error in update_sprite: {}", err)
                 }
             } else {
                 log_to_console!("Can't find sprite {:?} to update", sprite);
@@ -190,9 +182,8 @@ impl<T: 'static + Game> GameRunner<T> {
     pub fn draw_sprite(&mut self, sprite: *mut LCDSprite, bounds: PDRect, draw_rect: PDRect) {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
-                match game.draw_sprite(&sprite, &bounds, &draw_rect, &self.playdate) {
-                    Err(err) => log_to_console!("Error in draw_sprite: {}", err),
-                    _ => (),
+                if let Err(err) = game.draw_sprite(&sprite, &bounds, &draw_rect, &self.playdate) {
+                    log_to_console!("Error in draw_sprite: {}", err)
                 }
             } else {
                 log_to_console!("Can't find sprite {:?} to draw", sprite);
@@ -335,7 +326,7 @@ unsafe impl Sync for PlaydateAllocator {}
 unsafe impl GlobalAlloc for PlaydateAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let system = System::get();
-        system.realloc(core::ptr::null_mut(), layout.size() as usize) as *mut u8
+        system.realloc(core::ptr::null_mut(), layout.size()) as *mut u8
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
@@ -363,7 +354,7 @@ fn alloc_error(_layout: Layout) -> ! {
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     let mut i = 0;
     while i < n {
-        *dest.offset(i as isize) = *src.offset(i as isize);
+        *dest.add(i) = *src.add(i);
         i += 1;
     }
     dest
@@ -377,13 +368,13 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
         let mut i = n;
         while i != 0 {
             i -= 1;
-            *dest.offset(i as isize) = *src.offset(i as isize);
+            *dest.add(i) = *src.add(i);
         }
     } else {
         // copy from beginning
         let mut i = 0;
         while i < n {
-            *dest.offset(i as isize) = *src.offset(i as isize);
+            *dest.add(i) = *src.add(i);
             i += 1;
         }
     }
@@ -395,8 +386,8 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     let mut i = 0;
     while i < n {
-        let a = *s1.offset(i as isize);
-        let b = *s2.offset(i as isize);
+        let a = *s1.add(i);
+        let b = *s2.add(i);
         if a != b {
             return a as i32 - b as i32;
         }
@@ -415,7 +406,7 @@ pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
 pub unsafe fn memset_internal(s: *mut u8, c: crankstart_sys::ctypes::c_int, n: usize) -> *mut u8 {
     let mut i = 0;
     while i < n {
-        *s.offset(i as isize) = c as u8;
+        *s.add(i) = c as u8;
         i += 1;
     }
     s

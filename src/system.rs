@@ -69,7 +69,7 @@ impl System {
 
     pub fn log_to_console(text: &str) {
         unsafe {
-            if SYSTEM.0 != ptr::null_mut() {
+            if !SYSTEM.0.is_null() {
                 if let Ok(c_text) = CString::new(text) {
                     let log_to_console_fn = (*SYSTEM.0).logToConsole.expect("logToConsole");
                     log_to_console_fn(c_text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
@@ -80,7 +80,7 @@ impl System {
 
     pub fn log_to_console_raw(text: &str) {
         unsafe {
-            if SYSTEM.0 != ptr::null_mut() {
+            if !SYSTEM.0.is_null() {
                 let log_to_console_fn = (*SYSTEM.0).logToConsole.expect("logToConsole");
                 log_to_console_fn(text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
             }
@@ -89,7 +89,7 @@ impl System {
 
     pub fn error(text: &str) {
         unsafe {
-            if SYSTEM.0 != ptr::null_mut() {
+            if !SYSTEM.0.is_null() {
                 if let Ok(c_text) = CString::new(text) {
                     let error_fn = (*SYSTEM.0).error.expect("error");
                     error_fn(c_text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
@@ -100,7 +100,7 @@ impl System {
 
     pub fn error_raw(text: &str) {
         unsafe {
-            if SYSTEM.0 != ptr::null_mut() {
+            if !SYSTEM.0.is_null() {
                 let error_fn = (*SYSTEM.0).error.expect("error");
                 error_fn(text.as_ptr() as *mut crankstart_sys::ctypes::c_char);
             }
@@ -122,7 +122,7 @@ impl System {
     }
 
     pub fn get_elapsed_time(&self) -> Result<f32, Error> {
-        Ok(pd_func_caller!((*self.0).getElapsedTime)? as f32)
+        Ok(pd_func_caller!((*self.0).getElapsedTime)?)
     }
 
     pub fn draw_fps(&self, x: i32, y: i32) -> Result<(), Error> {

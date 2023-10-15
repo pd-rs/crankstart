@@ -78,7 +78,7 @@ impl BitmapInner {
             width,
             height,
             rowbytes,
-            hasmask: mask_ptr != ptr::null_mut(),
+            hasmask: !mask_ptr.is_null(),
         })
     }
 
@@ -88,7 +88,7 @@ impl BitmapInner {
             self.raw_bitmap,
             location.x,
             location.y,
-            flip.into(),
+            flip,
         )?;
         Ok(())
     }
@@ -153,7 +153,7 @@ impl BitmapInner {
             location.y,
             size.width,
             size.height,
-            flip.into(),
+            flip,
         )?;
         Ok(())
     }
@@ -213,7 +213,7 @@ impl BitmapInner {
             self.raw_bitmap,
             &mut out_err
         )?;
-        if out_err != ptr::null_mut() {
+        if !out_err.is_null() {
             let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
             Err(anyhow!(err_msg))
         } else {
@@ -360,7 +360,7 @@ fn raw_bitmap(bitmap: OptionalBitmap<'_>) -> *mut crankstart_sys::LCDBitmap {
     if let Some(bitmap) = bitmap {
         bitmap.inner.borrow().raw_bitmap
     } else {
-        ptr::null_mut() as *mut crankstart_sys::LCDBitmap
+        ptr::null_mut()
     }
 }
 
@@ -368,7 +368,7 @@ pub struct Font(*mut crankstart_sys::LCDFont);
 
 impl Font {
     pub fn new(font: *mut crankstart_sys::LCDFont) -> Result<Self, Error> {
-        anyhow::ensure!(font != ptr::null_mut(), "Null pointer passed to Font::new");
+        anyhow::ensure!(!font.is_null(), "Null pointer passed to Font::new");
         Ok(Self(font))
     }
 }
@@ -396,7 +396,7 @@ impl BitmapTableInner {
                 index as c_int
             )?;
             ensure!(
-                raw_bitmap != ptr::null_mut(),
+                !raw_bitmap.is_null(),
                 "Failed to load bitmap {} from table {:?}",
                 index,
                 self.raw_bitmap_table
@@ -417,7 +417,7 @@ impl BitmapTableInner {
             self.raw_bitmap_table,
             &mut out_err
         )?;
-        if out_err != ptr::null_mut() {
+        if !out_err.is_null() {
             let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
             Err(anyhow!(err_msg))
         } else {
@@ -483,7 +483,7 @@ impl Graphics {
 
     /// Allows drawing directly into an image rather than the framebuffer, for example for
     /// drawing text into a sprite's image.
-    pub fn with_context<F, T>(&self, bitmap: &mut Bitmap, f: F) -> Result<T, Error>
+    pub fn with_context<F, T>(&self, bitmap: &Bitmap, f: F) -> Result<T, Error>
     where
         F: FnOnce() -> Result<T, Error>,
     {
@@ -507,20 +507,14 @@ impl Graphics {
 
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getFrame)?;
-        anyhow::ensure!(
-            ptr != ptr::null_mut(),
-            "Null pointer returned from getFrame"
-        );
+        anyhow::ensure!(!ptr.is_null(), "Null pointer returned from getFrame");
         let frame = unsafe { slice::from_raw_parts_mut(ptr, (LCD_ROWSIZE * LCD_ROWS) as usize) };
         Ok(frame)
     }
 
     pub fn get_display_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getDisplayFrame)?;
-        anyhow::ensure!(
-            ptr != ptr::null_mut(),
-            "Null pointer returned from getDisplayFrame"
-        );
+        anyhow::ensure!(!ptr.is_null(), "Null pointer returned from getDisplayFrame");
         let frame = unsafe { slice::from_raw_parts_mut(ptr, (LCD_ROWSIZE * LCD_ROWS) as usize) };
         Ok(frame)
     }
@@ -528,7 +522,7 @@ impl Graphics {
     pub fn get_debug_bitmap(&self) -> Result<Bitmap, Error> {
         let raw_bitmap = pd_func_caller!((*self.0).getDebugBitmap)?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from getDebugImage"
         );
         Ok(Bitmap::new(raw_bitmap, false))
@@ -537,14 +531,14 @@ impl Graphics {
     pub fn get_framebuffer_bitmap(&self) -> Result<Bitmap, Error> {
         let raw_bitmap = pd_func_caller!((*self.0).copyFrameBufferBitmap)?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from getFrameBufferBitmap"
         );
         Ok(Bitmap::new(raw_bitmap, true))
     }
 
     pub fn set_background_color(&self, color: LCDSolidColor) -> Result<(), Error> {
-        pd_func_caller!((*self.0).setBackgroundColor, color.into())
+        pd_func_caller!((*self.0).setBackgroundColor, color)
     }
 
     pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
@@ -572,7 +566,7 @@ impl Graphics {
             bg_color.into()
         )?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from new_bitmap"
         );
         Ok(Bitmap::new(raw_bitmap, true))
@@ -582,8 +576,8 @@ impl Graphics {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let raw_bitmap = pd_func_caller!((*self.0).loadBitmap, c_path.as_ptr(), &mut out_err)?;
-        if raw_bitmap == ptr::null_mut() {
-            if out_err != ptr::null_mut() {
+        if raw_bitmap.is_null() {
+            if !out_err.is_null() {
                 let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
                 Err(anyhow!(err_msg))
             } else {
@@ -612,8 +606,8 @@ impl Graphics {
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let raw_bitmap_table =
             pd_func_caller!((*self.0).loadBitmapTable, c_path.as_ptr(), &mut out_err)?;
-        if raw_bitmap_table == ptr::null_mut() {
-            if out_err != ptr::null_mut() {
+        if raw_bitmap_table.is_null() {
+            if !out_err.is_null() {
                 let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
                 Err(anyhow!(err_msg))
             } else {
@@ -657,14 +651,13 @@ impl Graphics {
         let n_pts = coords.len();
         let mut coords_seq = coords
             .iter()
-            .map(|pt| [pt.x, pt.y])
-            .flatten()
+            .flat_map(|pt| [pt.x, pt.y])
             .collect::<alloc::vec::Vec<_>>();
 
         pd_func_caller!(
             (*self.0).fillPolygon,
             n_pts as i32,
-            coords_seq.as_mut_ptr() as *mut i32,
+            coords_seq.as_mut_ptr(),
             color.into(),
             fillrule
         )?;
@@ -775,7 +768,7 @@ impl Graphics {
         pd_func_caller!(
             (*self.0).drawText,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as usize,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
@@ -788,7 +781,7 @@ impl Graphics {
             (*self.0).getTextWidth,
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as usize,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )
