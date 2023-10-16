@@ -151,16 +151,16 @@ impl<T: 'static + Game> GameRunner<T> {
 
         if let Some(game) = self.game.as_mut() {
             if let Err(err) = game.update(&mut self.playdate) {
-                log_to_console!("Error in update: {}", err)
+                log_to_console!("Error in update: {err:#}")
             }
             if game.draw_and_update_sprites() {
                 if let Err(err) = SpriteManager::get_mut().update_and_draw_sprites() {
-                    log_to_console!("Error from sprite_manager.update_and_draw_sprites: {}", err)
+                    log_to_console!("Error from sprite_manager.update_and_draw_sprites: {err:#}")
                 }
             }
             if game.draw_fps() {
                 if let Err(err) = System::get().draw_fps(0, 0) {
-                    log_to_console!("Error from system().draw_fps: {}", err)
+                    log_to_console!("Error from system().draw_fps: {err:#}")
                 }
             }
         } else {
@@ -173,10 +173,10 @@ impl<T: 'static + Game> GameRunner<T> {
         if let Some(game) = self.game.as_mut() {
             if let Some(mut sprite) = SpriteManager::get_mut().get_sprite(sprite) {
                 if let Err(err) = game.update_sprite(&mut sprite, &mut self.playdate) {
-                    log_to_console!("Error in update_sprite: {}", err)
+                    log_to_console!("Error in update_sprite: {err:#}")
                 }
             } else {
-                log_to_console!("Can't find sprite {:?} to update", sprite);
+                log_to_console!("Can't find sprite {sprite:?} to update");
             }
         } else {
             log_to_console!("can't get game to update_sprite");
@@ -187,10 +187,10 @@ impl<T: 'static + Game> GameRunner<T> {
         if let Some(game) = self.game.as_ref() {
             if let Some(sprite) = SpriteManager::get_mut().get_sprite(sprite) {
                 if let Err(err) = game.draw_sprite(&sprite, &bounds, &draw_rect, &self.playdate) {
-                    log_to_console!("Error in draw_sprite: {}", err)
+                    log_to_console!("Error in draw_sprite: {err:#}")
                 }
             } else {
-                log_to_console!("Can't find sprite {:?} to draw", sprite);
+                log_to_console!("Can't find sprite {sprite:?} to draw");
             }
         } else {
             log_to_console!("can't get game to draw_sprite");
@@ -253,19 +253,19 @@ macro_rules! crankstart_game {
                     let mut playdate = match Playdate::new(playdate, sprite_update, sprite_draw) {
                         Ok(playdate) => playdate,
                         Err(e) => {
-                            log_to_console!("Failed to construct Playdate system: {}", e);
+                            log_to_console!("Failed to construct Playdate system: {e:#}");
                             return 1;
                         }
                     };
                     System::get()
                         .set_update_callback(Some(update))
                         .unwrap_or_else(|err| {
-                            log_to_console!("Got error while setting update callback: {}", err);
+                            log_to_console!("Got error while setting update callback: {err:#}");
                         });
                     let game = match $game_struct::new(&mut playdate) {
                         Ok(game) => Some(game),
                         Err(err) => {
-                            log_to_console!("Got error while creating game: {}", err);
+                            log_to_console!("Got error while creating game: {err:#}");
                             None
                         }
                     };
