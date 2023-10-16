@@ -9,6 +9,7 @@ pub mod display;
 pub mod file;
 pub mod geometry;
 pub mod graphics;
+pub mod lua;
 pub mod sound;
 pub mod sprite;
 pub mod system;
@@ -18,6 +19,7 @@ use {
         display::Display,
         file::FileSystem,
         graphics::{Graphics, PDRect},
+        lua::Lua,
         sound::Sound,
         sprite::{
             Sprite, SpriteCollideFunction, SpriteDrawFunction, SpriteManager, SpriteUpdateFunction,
@@ -48,6 +50,8 @@ impl Playdate {
         FileSystem::new(file);
         let graphics = unsafe { (*playdate).graphics };
         Graphics::new(graphics);
+        let lua = unsafe { (*playdate).lua };
+        Lua::new(lua);
         let sound = unsafe { (*playdate).sound };
         Sound::new(sound)?;
         let display = unsafe { (*playdate).display };
@@ -210,6 +214,9 @@ impl<T: 'static + Game> GameRunner<T> {
 #[macro_export]
 macro_rules! crankstart_game {
     ($game_struct:tt) => {
+        crankstart_game!($game_struct, PDSystemEvent::kEventInit)
+    };
+    ($game_struct:tt, $pd_system_event:expr) => {
         pub mod game_setup {
             extern crate alloc;
             use super::*;
@@ -250,7 +257,7 @@ macro_rules! crankstart_game {
                 event: PDSystemEvent,
                 _arg: u32,
             ) -> crankstart_sys::ctypes::c_int {
-                if event == PDSystemEvent::kEventInit {
+                if event == $pd_system_event {
                     // This would only fail if PlaydateAPI has null pointers, which shouldn't happen.
                     let mut playdate = match Playdate::new(playdate, sprite_update, sprite_draw) {
                         Ok(playdate) => playdate,
