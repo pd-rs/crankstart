@@ -51,7 +51,7 @@ impl FileSystem {
     }
 
     pub fn listfiles(&self, path: &str, show_invisible: bool) -> Result<Vec<String>, Error> {
-        let mut files: Box<Vec<String>> = Box::new(Vec::new());
+        let mut files: Box<Vec<String>> = Box::default();
         let files_ptr: *mut Vec<String> = &mut *files;
         let c_path = CString::new(path).map_err(Error::msg)?;
         let result = pd_func_caller!(
@@ -99,7 +99,7 @@ impl FileSystem {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let raw_file = pd_func_caller!((*self.0).open, c_path.as_ptr(), options)?;
         ensure!(
-            raw_file != ptr::null_mut(),
+            !raw_file.is_null(),
             "Failed to open file at {} with options {:?}",
             path,
             options
@@ -109,11 +109,10 @@ impl FileSystem {
 
     pub fn read_file_as_string(&self, path: &str) -> Result<String, Error> {
         let stat = self.stat(path)?;
-        let mut buffer = Vec::with_capacity(stat.size as usize);
-        buffer.resize(stat.size as usize, 0);
+        let mut buffer = alloc::vec![0; stat.size as usize];
         let sd_file = self.open(path, FileOptions::kFileRead | FileOptions::kFileReadData)?;
         sd_file.read(&mut buffer)?;
-        Ok(String::from_utf8(buffer).map_err(Error::msg)?)
+        String::from_utf8(buffer).map_err(Error::msg)
     }
 }
 
