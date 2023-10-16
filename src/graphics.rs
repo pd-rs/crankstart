@@ -761,8 +761,20 @@ impl Graphics {
 
     pub fn load_font(&self, path: &str) -> Result<Font, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
-        let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), ptr::null_mut())?;
-        Font::new(font)
+        let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
+        let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), &mut out_err)?;
+        if font == ptr::null_mut() {
+            if out_err != ptr::null_mut() {
+                let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
+                Err(anyhow!(err_msg))
+            } else {
+                Err(anyhow!(
+                    "load_font failed without providing an error message"
+                ))
+            }
+        } else {
+            Font::new(font)
+        }
     }
 
     pub fn set_font(&self, font: &Font) -> Result<(), Error> {
