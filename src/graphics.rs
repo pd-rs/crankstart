@@ -756,8 +756,8 @@ impl Graphics {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), &mut out_err)?;
-        if font == ptr::null_mut() {
-            if out_err != ptr::null_mut() {
+        if font.is_null() {
+            if !out_err.is_null() {
                 let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
                 Err(anyhow!(err_msg))
             } else {

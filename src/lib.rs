@@ -205,7 +205,7 @@ impl<T: 'static + Game> GameRunner<T> {
 #[macro_export]
 macro_rules! crankstart_game {
     ($game_struct:tt) => {
-        crankstart_game!($game_struct, PDSystemEvent::kEventInit)
+        crankstart_game!($game_struct, PDSystemEvent::kEventInit);
     };
     ($game_struct:tt, $pd_system_event:expr) => {
         pub mod game_setup {
