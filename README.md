@@ -56,7 +56,6 @@ crankstart-sys = { path = "../crankstart/crankstart-sys" }
 anyhow = { version = "1.0.31", default-features = false }
 euclid = { version = "0.22.9", default-features = false, features = [ "libm" ] }
 hashbrown = "0.14.0"
-heapless = "0.6.1"
 
 [dependencies.cstr_core]
 version = "=0.1.2"

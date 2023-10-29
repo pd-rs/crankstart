@@ -97,8 +97,8 @@ impl<'a> Iterator for CollisionInfoIter<'a> {
             let sprite = sprite.unwrap();
             let other = other.unwrap();
             let collision_info = CollisionInfo {
-                sprite: sprite,
-                other: other,
+                sprite,
+                other,
                 info: &collision_slice[index],
             };
             Some(collision_info)
@@ -225,7 +225,7 @@ impl SpriteInner {
             (*self.playdate_sprite).setImage,
             self.raw_sprite,
             bitmap.inner.borrow().raw_bitmap,
-            flip.into()
+            flip,
         )?;
         self.image = Some(bitmap);
         Ok(())
@@ -513,7 +513,7 @@ impl SpriteManager {
 
     pub fn new_sprite(&mut self) -> Result<Sprite, Error> {
         let raw_sprite = pd_func_caller!((*self.playdate_sprite).newSprite)?;
-        if raw_sprite == core::ptr::null_mut() {
+        if raw_sprite.is_null() {
             Err(anyhow!("new sprite failed"))
         } else {
             let sprite = SpriteInner {
@@ -560,10 +560,8 @@ impl SpriteManager {
         let weak_sprite = self.sprites.get(&raw_sprite);
         weak_sprite
             .and_then(|weak_sprite| weak_sprite.upgrade())
-            .and_then(|inner_ptr| {
-                Some(Sprite {
-                    inner: inner_ptr.clone(),
-                })
+            .map(|inner_ptr| Sprite {
+                inner: inner_ptr.clone(),
             })
     }
 
@@ -606,9 +604,9 @@ impl TextSprite {
 
         let width = graphics.get_system_text_width(text, tracking)?;
 
-        let mut text_bitmap =
+        let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), background.clone())?;
-        graphics.with_context(&mut text_bitmap, || {
+        graphics.with_context(&text_bitmap, || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;
@@ -642,9 +640,9 @@ impl TextSprite {
 
         let width = graphics.get_system_text_width(text, tracking)?;
 
-        let mut text_bitmap =
+        let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), self.background.clone())?;
-        graphics.with_context(&mut text_bitmap, || {
+        graphics.with_context(&text_bitmap, || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;
