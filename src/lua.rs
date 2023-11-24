@@ -35,11 +35,32 @@ impl Lua {
         }
     }
 
+    pub fn call_function(&self, name: &str, nargs: i32) -> Result<(), Error> {
+        let c_name = CString::new(name).map_err(Error::msg)?;
+        let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
+        pd_func_caller!(
+            (*self.0).callFunction,
+            c_name.as_ptr(),
+            nargs as ctypes::c_int,
+            &mut out_err
+        )?;
+        if !out_err.is_null() {
+            let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
+            Err(anyhow!(err_msg))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn get_arg_string(&self, pos: i32) -> Result<String, Error> {
         let c_arg_string = pd_func_caller!((*self.0).getArgString, pos as ctypes::c_int)?;
         unsafe {
             let arg_string = CStr::from_ptr(c_arg_string).to_string_lossy().into_owned();
             Ok(arg_string)
         }
+    }
+
+    pub fn push_function(&self, f: lua_CFunction) -> Result<(), Error> {
+        pd_func_caller!((*self.0).pushFunction, f)
     }
 }
