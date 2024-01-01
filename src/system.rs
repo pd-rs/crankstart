@@ -3,17 +3,16 @@ use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+
 use anyhow::anyhow;
-use {
-    crate::pd_func_caller, alloc::format, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
-    cstr_core::CString,
-};
 
 use crankstart_sys::ctypes::{c_char, c_int};
-use crankstart_sys::l_valtype::kInt;
 pub use crankstart_sys::PDButtons;
 use crankstart_sys::PDMenuItem;
-use crate::{log_to_console, panic};
+use {
+    crate::pd_func_caller, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
+    cstr_core::CString,
+};
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
@@ -71,68 +70,87 @@ impl System {
         let c_text = CString::new(title).map_err(|e| anyhow!("CString::new: {}", e))?;
         let wrapped_callback = Box::new(callback);
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
-        let raw_menu_item = pd_func_caller!((*self.0).addMenuItem, c_text.as_ptr() as *mut core::ffi::c_char, Some(Self::menu_item_callback), raw_callback_ptr as *mut c_void)?;
-            Ok(MenuItem {
-                inner: Rc::new(RefCell::new(MenuItemInner {
-                    item: raw_menu_item,
-                    raw_callback_ptr,
-                })),
-                kind: MenuItemKind::Normal,
-            })
+        let raw_menu_item = pd_func_caller!(
+            (*self.0).addMenuItem,
+            c_text.as_ptr() as *mut core::ffi::c_char,
+            Some(Self::menu_item_callback),
+            raw_callback_ptr as *mut c_void
+        )?;
+        Ok(MenuItem {
+            inner: Rc::new(RefCell::new(MenuItemInner {
+                item: raw_menu_item,
+                raw_callback_ptr,
+            })),
+            kind: MenuItemKind::Normal,
+        })
     }
 
     /// Adds a option to the menu that has a checkbox. The initial_checked_state is the initial
     /// state of the checkbox. Callback will only be called when the menu is closed, not when the
     /// option is toggled. Use `System::get_menu_item_value` to get the state of the checkbox when
     /// the callback is called.
-    pub fn add_checkmark_menu_item(&self, title: &str, initial_checked_state: bool, callback: Box<dyn Fn()>) -> Result<MenuItem, Error> {
+    pub fn add_checkmark_menu_item(
+        &self,
+        title: &str,
+        initial_checked_state: bool,
+        callback: Box<dyn Fn()>,
+    ) -> Result<MenuItem, Error> {
         let c_text = CString::new(title).map_err(|e| anyhow!("CString::new: {}", e))?;
         let wrapped_callback = Box::new(callback);
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
-        let raw_menu_item = pd_func_caller!((*self.0).addCheckmarkMenuItem,
+        let raw_menu_item = pd_func_caller!(
+            (*self.0).addCheckmarkMenuItem,
             c_text.as_ptr() as *mut core::ffi::c_char,
             initial_checked_state as c_int,
             Some(Self::menu_item_callback),
-            raw_callback_ptr as *mut c_void)?;
-        Ok(
-            MenuItem {
-                inner: Rc::new(RefCell::new(MenuItemInner {
-                    item: raw_menu_item,
-                    raw_callback_ptr,
-                })),
-    kind: MenuItemKind::Checkmark,
-            })
+            raw_callback_ptr as *mut c_void
+        )?;
+
+        Ok(MenuItem {
+            inner: Rc::new(RefCell::new(MenuItemInner {
+                item: raw_menu_item,
+                raw_callback_ptr,
+            })),
+            kind: MenuItemKind::Checkmark,
+        })
     }
 
     /// Adds a option to the menu that has multiple values that can be cycled through. The initial
     /// value is the first element in `options`. Callback will only be called when the menu is
     /// closed, not when the option is toggled. Use `System::get_menu_item_value` to get the index
     /// of the options list when the callback is called, which can be used to lookup the value.
-    pub fn add_options_menu_item(&self, title: &str, options: Vec<String>, callback: Box<dyn Fn()>) -> Result<MenuItem, Error> {
+    pub fn add_options_menu_item(
+        &self,
+        title: &str,
+        options: Vec<String>,
+        callback: Box<dyn Fn()>,
+    ) -> Result<MenuItem, Error> {
         let c_text = CString::new(title).map_err(|e| anyhow!("CString::new: {}", e))?;
         let options_count = options.len() as c_int;
-        let c_options: Vec<CString> = options.iter().map(|s| CString::new(s.clone()).map_err(|e| anyhow!("CString::new: {}", e))).collect::<Result<Vec<CString>, Error>>()?;
+        let c_options: Vec<CString> = options
+            .iter()
+            .map(|s| CString::new(s.clone()).map_err(|e| anyhow!("CString::new: {}", e)))
+            .collect::<Result<Vec<CString>, Error>>()?;
         let c_options_ptrs: Vec<*const i8> = c_options.iter().map(|c| c.as_ptr()).collect();
         let c_options_ptrs_ptr = c_options_ptrs.as_ptr();
         let option_titles = c_options_ptrs_ptr as *mut *const c_char;
         let wrapped_callback = Box::new(callback);
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
-        let raw_menu_item = pd_func_caller!((*self.0).addOptionsMenuItem,
+        let raw_menu_item = pd_func_caller!(
+            (*self.0).addOptionsMenuItem,
             c_text.as_ptr() as *mut core::ffi::c_char,
             option_titles,
             options_count,
             Some(Self::menu_item_callback),
-            raw_callback_ptr as *mut c_void)?;
-        Ok(
-            MenuItem {
-                inner: Rc
-                ::new(RefCell::new(MenuItemInner {
-                    item: raw_menu_item,
-                    raw_callback_ptr,
-                })),
-                kind: MenuItemKind::Options(options),
-
-            })
+            raw_callback_ptr as *mut c_void
+        )?;
+        Ok(MenuItem {
+            inner: Rc::new(RefCell::new(MenuItemInner {
+                item: raw_menu_item,
+                raw_callback_ptr,
+            })),
+            kind: MenuItemKind::Options(options),
+        })
     }
 
     /// Returns the state of a given menu item. The meaning depends on the type of menu item.
@@ -151,23 +169,37 @@ impl System {
             MenuItemKind::Normal => {}
             MenuItemKind::Checkmark => {
                 if new_value > 1 {
-                    return Err(anyhow!("Invalid value ({}) for checkmark menu item", new_value))
+                    return Err(anyhow!(
+                        "Invalid value ({}) for checkmark menu item",
+                        new_value
+                    ));
                 }
             }
             MenuItemKind::Options(opts) => {
                 if new_value >= opts.len() {
-                    return Err(anyhow!("Invalid value ({}) for options menu item, must be between 0 and {}", new_value, opts.len() - 1))
+                    return Err(anyhow!(
+                        "Invalid value ({}) for options menu item, must be between 0 and {}",
+                        new_value,
+                        opts.len() - 1
+                    ));
                 }
             }
         }
-        pd_func_caller!((*self.0).setMenuItemValue, item.inner.borrow().item, new_value as c_int)
+        pd_func_caller!(
+            (*self.0).setMenuItemValue,
+            item.inner.borrow().item,
+            new_value as c_int
+        )
     }
-
 
     /// Set the title of a given menu item
     pub fn set_menu_item_title(&self, item: &MenuItem, new_title: &str) -> Result<(), Error> {
         let c_text = CString::new(new_title).map_err(|e| anyhow!("CString::new: {}", e))?;
-        pd_func_caller!((*self.0).setMenuItemTitle, item.inner.borrow().item, c_text.as_ptr() as *mut c_char)
+        pd_func_caller!(
+            (*self.0).setMenuItemTitle,
+            item.inner.borrow().item,
+            c_text.as_ptr() as *mut c_char
+        )
     }
     pub fn remove_menu_item(&self, item: MenuItem) -> Result<(), Error> {
         pd_func_caller!((*self.0).removeMenuItem, item.inner.borrow().item)
@@ -266,6 +298,7 @@ pub enum MenuItemKind {
     Checkmark,
     Options(Vec<String>),
 }
+
 pub struct MenuItemInner {
     item: *mut PDMenuItem,
     raw_callback_ptr: *mut Box<dyn Fn()>,
@@ -279,10 +312,8 @@ impl Drop for MenuItemInner {
         }
     }
 }
+
 pub struct MenuItem {
     inner: Rc<RefCell<MenuItemInner>>,
     pub kind: MenuItemKind,
 }
-
-
-
