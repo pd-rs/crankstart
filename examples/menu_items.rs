@@ -2,29 +2,31 @@
 
 extern crate alloc;
 
-use alloc::{format, vec};
+use alloc::vec;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+
 use hashbrown::HashMap;
+
 use {
     alloc::boxed::Box,
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        geometry::{ScreenPoint, ScreenVector},
+        Game,
+        geometry::ScreenPoint,
         graphics::{Graphics, LCDColor, LCDSolidColor},
         log_to_console,
-        system::{System, MenuItem},
-        Game, Playdate,
+        Playdate, system::{MenuItem, System},
     },
-    crankstart_sys::{LCD_COLUMNS, LCD_ROWS},
-    euclid::{point2, vec2},
+    euclid::point2,
 };
+use crankstart::system::MenuItemKind;
 
 struct State {
-    menu_items: Rc<RefCell<HashMap<&'static str, MenuItem>>>,
+    _menu_items: Rc<RefCell<HashMap<&'static str, MenuItem>>>,
     text_location: ScreenPoint,
 }
 
@@ -59,17 +61,21 @@ impl State {
         };
         let options_item = {
             let ref_menu_items = menu_items.clone();
-            let options : Vec<String>= vec!["Small".into(), "Medium".into(), "Large".into()];
-            let options_copy = options.clone();
+            let options: Vec<String> = vec!["Small".into(), "Medium".into(), "Large".into()];
             system.add_options_menu_item(
                 "Size",
                 options,
                 Box::new(move || {
                     let value_of_item = {
                         let menu_items = ref_menu_items.borrow();
-                        let this_menu_item = menu_items.get("checkmark").unwrap();
+                        let this_menu_item = menu_items.get("options").unwrap();
                         let idx = System::get().get_menu_item_value(this_menu_item).unwrap();
-                        options_copy.get(idx as usize)
+                        match &this_menu_item.kind {
+                            MenuItemKind::Options(opts) => {
+                                opts.get(idx ).map(|s| s.clone())
+                            }
+                            _ => None
+                        }
                     };
                     log_to_console!("Checked option picked: Value is now {:?}", value_of_item);
                 }),
@@ -82,11 +88,9 @@ impl State {
             menu_items.insert("options", options_item);
         }
         Ok(Box::new(Self {
-            menu_items,
+            _menu_items: menu_items,
             text_location: point2(100, 100),
-
-        }
-        ))
+        }))
     }
 }
 
@@ -94,7 +98,7 @@ impl Game for State {
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
         let graphics = Graphics::get();
         graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
-        graphics.draw_text("Menu Items", self.text_location);
+        graphics.draw_text("Menu Items", self.text_location).unwrap();
 
         System::get().draw_fps(0, 0)?;
 
