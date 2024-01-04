@@ -2,28 +2,28 @@
 
 extern crate alloc;
 
-use alloc::vec;
 use alloc::rc::Rc;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
 use hashbrown::HashMap;
 
+use crankstart::system::MenuItemKind;
 use {
     alloc::boxed::Box,
     anyhow::Error,
     crankstart::{
         crankstart_game,
-        Game,
         geometry::ScreenPoint,
         graphics::{Graphics, LCDColor, LCDSolidColor},
         log_to_console,
-        Playdate, system::{MenuItem, System},
+        system::{MenuItem, System},
+        Game, Playdate,
     },
     euclid::point2,
 };
-use crankstart::system::MenuItemKind;
 
 struct State {
     _menu_items: Rc<RefCell<HashMap<&'static str, MenuItem>>>,
@@ -40,8 +40,7 @@ impl State {
                 "Select Me",
                 Box::new(|| {
                     log_to_console!("Normal option picked");
-                }
-                ),
+                }),
             )?
         };
         let checkmark_item = {
@@ -71,10 +70,8 @@ impl State {
                         let this_menu_item = menu_items.get("options").unwrap();
                         let idx = System::get().get_menu_item_value(this_menu_item).unwrap();
                         match &this_menu_item.kind {
-                            MenuItemKind::Options(opts) => {
-                                opts.get(idx ).map(|s| s.clone())
-                            }
-                            _ => None
+                            MenuItemKind::Options(opts) => opts.get(idx).map(|s| s.clone()),
+                            _ => None,
                         }
                     };
                     log_to_console!("Checked option picked: Value is now {:?}", value_of_item);
@@ -98,13 +95,14 @@ impl Game for State {
     fn update(&mut self, _playdate: &mut Playdate) -> Result<(), Error> {
         let graphics = Graphics::get();
         graphics.clear(LCDColor::Solid(LCDSolidColor::kColorWhite))?;
-        graphics.draw_text("Menu Items", self.text_location).unwrap();
+        graphics
+            .draw_text("Menu Items", self.text_location)
+            .unwrap();
 
         System::get().draw_fps(0, 0)?;
 
         Ok(())
     }
 }
-
 
 crankstart_game!(State);
