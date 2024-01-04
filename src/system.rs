@@ -16,10 +16,6 @@ use {
 
 static mut SYSTEM: System = System(ptr::null_mut());
 
-static mut MENU_ITEM_CALLBACKS: Vec<Box<dyn Fn()>> = Vec::new();
-const MENU_ITEM_CALLBACKS_MAX: usize = 10;
-const MENU_ITEM_INDICES: [c_int; MENU_ITEM_CALLBACKS_MAX] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-
 #[derive(Clone, Debug)]
 pub struct System(*const crankstart_sys::playdate_sys);
 
