@@ -9,7 +9,6 @@ use {
         crankstart_game,
         geometry::{ScreenPoint, ScreenVector},
         graphics::{Graphics, LCDColor, LCDSolidColor},
-        log_to_console,
         system::System,
         Game, Playdate,
     },
@@ -25,24 +24,6 @@ struct State {
 impl State {
     pub fn new(_playdate: &Playdate) -> Result<Box<Self>, Error> {
         crankstart::display::Display::get().set_refresh_rate(20.0)?;
-        System::get().add_menu_item(
-            "Say Hello",
-            Box::new(|| {
-                log_to_console!("Hello");
-            }),
-        )?;
-        System::get().add_menu_item(
-            "Say Goodbye",
-            Box::new(|| {
-                log_to_console!("Goodbye");
-            }),
-        )?;
-        System::get().add_menu_item(
-            "Sausage",
-            Box::new(|| {
-                log_to_console!("Sausage");
-            }),
-        )?;
         Ok(Box::new(Self {
             location: point2(INITIAL_X, INITIAL_Y),
             velocity: vec2(1, 2),
