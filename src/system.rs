@@ -207,9 +207,6 @@ impl System {
     fn remove_menu_item_internal(&self, item_inner: &MenuItemInner) -> Result<(), Error> {
         pd_func_caller!((*self.0).removeMenuItem, item_inner.item)
     }
-    pub fn remove_all_menu_items(&self) -> Result<(), Error> {
-        pd_func_caller!((*self.0).removeAllMenuItems)
-    }
 
     pub fn set_peripherals_enabled(&self, peripherals: PDPeripherals) -> Result<(), Error> {
         pd_func_caller!((*self.0).setPeripheralsEnabled, peripherals)
