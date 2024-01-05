@@ -198,10 +198,13 @@ impl System {
         )
     }
     pub fn remove_menu_item(&self, item: MenuItem) -> Result<(), Error> {
-        self.remove_menu_item_internal(&item.inner.borrow())
+        // Explicitly drops item. The actual calling of the removeMenuItem
+        // (via `remove_menu_item_internal`) is done in the drop impl to avoid calling it multiple
+        // times, even though that's been experimentally shown to be safe.
+        drop(item);
+        Ok(())
     }
     fn remove_menu_item_internal(&self, item_inner: &MenuItemInner) -> Result<(), Error> {
-        // Empirically it's been shown this is safe to call multiple times for the same item
         pd_func_caller!((*self.0).removeMenuItem, item_inner.item)
     }
     pub fn remove_all_menu_items(&self) -> Result<(), Error> {
@@ -356,6 +359,8 @@ pub struct MenuItemInner {
 
 impl Drop for MenuItemInner {
     fn drop(&mut self) {
+        // We must remove the menu item on drop to avoid a memory or having the firmware read
+        // unmanaged memory.
         System::get().remove_menu_item_internal(self).unwrap();
         unsafe {
             // Recast into box to let Box deal with freeing the right memory
