@@ -198,7 +198,11 @@ impl System {
         )
     }
     pub fn remove_menu_item(&self, item: MenuItem) -> Result<(), Error> {
-        pd_func_caller!((*self.0).removeMenuItem, item.inner.borrow().item)
+        self.remove_menu_item_internal(&item.inner.borrow())
+    }
+    fn remove_menu_item_internal(&self, item_inner: &MenuItemInner) -> Result<(), Error> {
+        // Empirically it's been shown this is safe to call multiple times for the same item
+        pd_func_caller!((*self.0).removeMenuItem, item_inner.item)
     }
     pub fn remove_all_menu_items(&self) -> Result<(), Error> {
         pd_func_caller!((*self.0).removeAllMenuItems)
@@ -352,6 +356,7 @@ pub struct MenuItemInner {
 
 impl Drop for MenuItemInner {
     fn drop(&mut self) {
+        System::get().remove_menu_item_internal(self).unwrap();
         unsafe {
             // Recast into box to let Box deal with freeing the right memory
             let _ = Box::from_raw(self.raw_callback_ptr);
