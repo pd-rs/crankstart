@@ -8,7 +8,7 @@ use anyhow::anyhow;
 
 use crankstart_sys::ctypes::{c_char, c_int};
 pub use crankstart_sys::PDButtons;
-use crankstart_sys::PDMenuItem;
+use crankstart_sys::{PDDateTime, PDLanguage, PDMenuItem, PDPeripherals};
 use {
     crate::pd_func_caller, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
     cstr_core::CString,
@@ -53,7 +53,7 @@ impl System {
         )?;
         Ok((current, pushed, released))
     }
-  
+
     extern "C" fn menu_item_callback(user_data: *mut core::ffi::c_void) {
         unsafe {
             let callback = user_data as *mut Box<dyn Fn()>;
