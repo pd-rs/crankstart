@@ -239,6 +239,27 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).getTag, self.raw_sprite)
     }
 
+    pub fn set_visible(&mut self, visible: bool) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).setVisible,
+            self.raw_sprite,
+            visible as i32
+        )
+    }
+
+    pub fn is_visible(&self) -> Result<bool, Error> {
+        let visible = pd_func_caller!((*self.playdate_sprite).isVisible, self.raw_sprite)?;
+        Ok(visible != 0)
+    }
+
+    pub fn set_opaque(&self, opaque: bool) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).setOpaque,
+            self.raw_sprite,
+            opaque as i32
+        )
+    }
+
     pub fn move_to(&mut self, x: f32, y: f32) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).moveTo, self.raw_sprite, x, y)
     }
@@ -421,6 +442,24 @@ impl Sprite {
             .try_borrow_mut()
             .map_err(Error::msg)?
             .move_to(x, y)
+    }
+
+    pub fn set_visible(&mut self, visible: bool) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .set_visible(visible)
+    }
+
+    pub fn is_visible(&self) -> Result<bool, Error> {
+        self.inner.try_borrow().map_err(Error::msg)?.is_visible()
+    }
+
+    pub fn set_opaque(&self, opaque: bool) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .set_opaque(opaque)
     }
 
     pub fn get_position(&self) -> Result<(f32, f32), Error> {
