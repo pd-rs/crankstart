@@ -33,6 +33,11 @@ path = "examples/hello_world.rs"
 crate-type = ["staticlib", "cdylib"]
 
 [[example]]
+name = "menu_items"
+path = "examples/menu_items.rs"
+crate-type = ["staticlib", "cdylib"]
+
+[[example]]
 name = "life"
 path = "examples/life.rs"
 crate-type = ["staticlib", "cdylib"]
