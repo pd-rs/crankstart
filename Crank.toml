@@ -1,6 +1,10 @@
 [[target]]
     name = "hello_world"
 
+    assets = [
+        "examples/assets/heart.png",
+    ]
+
     [target.metadata]
     name = "Hello World"
     version = "0.1.0"

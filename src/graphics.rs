@@ -500,6 +500,11 @@ impl Graphics {
         pd_func_caller!((*self.0).pushContext, raw_bitmap)
     }
 
+    /// Clear the context stack for graphics to make all drawing go to the display framebuffer.
+    pub fn clear_context(&self) -> Result<(), Error> {
+        pd_func_caller!((*self.0).pushContext, core::ptr::null_mut())
+    }
+
     /// Internal function; use `with_context`.
     fn pop_context(&self) -> Result<(), Error> {
         pd_func_caller!((*self.0).popContext)
