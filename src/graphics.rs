@@ -4,7 +4,7 @@ use {
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
     },
-    alloc::{format, rc::Rc},
+    alloc::{format, rc::Rc, vec::Vec},
     anyhow::{anyhow, ensure, Error},
     core::{cell::RefCell, ops::RangeInclusive, ptr, slice},
     crankstart_sys::{ctypes::c_int, LCDBitmapTable, LCDPattern},
@@ -14,8 +14,8 @@ use {
 };
 
 pub use crankstart_sys::{
-    LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDRect, LCDSolidColor, PDRect,
-    PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
+    LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDPolygonFillRule, LCDRect, LCDSolidColor,
+    PDRect, PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
 };
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
@@ -56,6 +56,7 @@ pub struct BitmapData {
 #[derive(Debug)]
 pub struct BitmapInner {
     pub(crate) raw_bitmap: *mut crankstart_sys::LCDBitmap,
+    owned: bool,
 }
 
 impl BitmapInner {
@@ -77,7 +78,7 @@ impl BitmapInner {
             width,
             height,
             rowbytes,
-            hasmask: mask_ptr != ptr::null_mut(),
+            hasmask: !mask_ptr.is_null(),
         })
     }
 
@@ -87,7 +88,7 @@ impl BitmapInner {
             self.raw_bitmap,
             location.x,
             location.y,
-            flip.into(),
+            flip,
         )?;
         Ok(())
     }
@@ -133,7 +134,10 @@ impl BitmapInner {
             // No documentation on this anywhere, but null works in testing.
             ptr::null_mut(), // allocedSize
         )?;
-        Ok(Self { raw_bitmap })
+        Ok(Self {
+            raw_bitmap,
+            owned: true,
+        })
     }
 
     pub fn tile(
@@ -149,7 +153,7 @@ impl BitmapInner {
             location.y,
             size.width,
             size.height,
-            flip.into(),
+            flip,
         )?;
         Ok(())
     }
@@ -165,7 +169,10 @@ impl BitmapInner {
     pub fn duplicate(&self) -> Result<Self, Error> {
         let raw_bitmap = pd_func_caller!((*Graphics::get_ptr()).copyBitmap, self.raw_bitmap)?;
 
-        Ok(Self { raw_bitmap })
+        Ok(Self {
+            raw_bitmap,
+            owned: self.owned,
+        })
     }
 
     pub fn transform(&self, rotation: f32, scale: Vector2D<f32>) -> Result<Self, Error> {
@@ -206,7 +213,7 @@ impl BitmapInner {
             self.raw_bitmap,
             &mut out_err
         )?;
-        if out_err != ptr::null_mut() {
+        if !out_err.is_null() {
             let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
             Err(anyhow!(err_msg))
         } else {
@@ -244,7 +251,9 @@ impl BitmapInner {
 
 impl Drop for BitmapInner {
     fn drop(&mut self) {
-        pd_func_caller_log!((*Graphics::get_ptr()).freeBitmap, self.raw_bitmap);
+        if self.owned {
+            pd_func_caller_log!((*Graphics::get_ptr()).freeBitmap, self.raw_bitmap);
+        }
     }
 }
 
@@ -256,9 +265,9 @@ pub struct Bitmap {
 }
 
 impl Bitmap {
-    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap) -> Self {
+    fn new(raw_bitmap: *mut crankstart_sys::LCDBitmap, owned: bool) -> Self {
         Bitmap {
-            inner: Rc::new(RefCell::new(BitmapInner { raw_bitmap })),
+            inner: Rc::new(RefCell::new(BitmapInner { raw_bitmap, owned })),
         }
     }
 
@@ -351,7 +360,7 @@ fn raw_bitmap(bitmap: OptionalBitmap<'_>) -> *mut crankstart_sys::LCDBitmap {
     if let Some(bitmap) = bitmap {
         bitmap.inner.borrow().raw_bitmap
     } else {
-        ptr::null_mut() as *mut crankstart_sys::LCDBitmap
+        ptr::null_mut()
     }
 }
 
@@ -359,7 +368,7 @@ pub struct Font(*mut crankstart_sys::LCDFont);
 
 impl Font {
     pub fn new(font: *mut crankstart_sys::LCDFont) -> Result<Self, Error> {
-        anyhow::ensure!(font != ptr::null_mut(), "Null pointer passed to Font::new");
+        anyhow::ensure!(!font.is_null(), "Null pointer passed to Font::new");
         Ok(Self(font))
     }
 }
@@ -387,12 +396,12 @@ impl BitmapTableInner {
                 index as c_int
             )?;
             ensure!(
-                raw_bitmap != ptr::null_mut(),
+                !raw_bitmap.is_null(),
                 "Failed to load bitmap {} from table {:?}",
                 index,
                 self.raw_bitmap_table
             );
-            let bitmap = Bitmap::new(raw_bitmap);
+            let bitmap = Bitmap::new(raw_bitmap, true);
             self.bitmaps.insert(index, bitmap.clone());
             Ok(bitmap)
         }
@@ -408,7 +417,7 @@ impl BitmapTableInner {
             self.raw_bitmap_table,
             &mut out_err
         )?;
-        if out_err != ptr::null_mut() {
+        if !out_err.is_null() {
             let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
             Err(anyhow!(err_msg))
         } else {
@@ -474,7 +483,7 @@ impl Graphics {
 
     /// Allows drawing directly into an image rather than the framebuffer, for example for
     /// drawing text into a sprite's image.
-    pub fn with_context<F, T>(&self, bitmap: &mut Bitmap, f: F) -> Result<T, Error>
+    pub fn with_context<F, T>(&self, bitmap: &Bitmap, f: F) -> Result<T, Error>
     where
         F: FnOnce() -> Result<T, Error>,
     {
@@ -498,20 +507,14 @@ impl Graphics {
 
     pub fn get_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getFrame)?;
-        anyhow::ensure!(
-            ptr != ptr::null_mut(),
-            "Null pointer returned from getFrame"
-        );
+        anyhow::ensure!(!ptr.is_null(), "Null pointer returned from getFrame");
         let frame = unsafe { slice::from_raw_parts_mut(ptr, (LCD_ROWSIZE * LCD_ROWS) as usize) };
         Ok(frame)
     }
 
     pub fn get_display_frame(&self) -> Result<&'static mut [u8], Error> {
         let ptr = pd_func_caller!((*self.0).getDisplayFrame)?;
-        anyhow::ensure!(
-            ptr != ptr::null_mut(),
-            "Null pointer returned from getDisplayFrame"
-        );
+        anyhow::ensure!(!ptr.is_null(), "Null pointer returned from getDisplayFrame");
         let frame = unsafe { slice::from_raw_parts_mut(ptr, (LCD_ROWSIZE * LCD_ROWS) as usize) };
         Ok(frame)
     }
@@ -519,23 +522,23 @@ impl Graphics {
     pub fn get_debug_bitmap(&self) -> Result<Bitmap, Error> {
         let raw_bitmap = pd_func_caller!((*self.0).getDebugBitmap)?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from getDebugImage"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, false))
     }
 
     pub fn get_framebuffer_bitmap(&self) -> Result<Bitmap, Error> {
         let raw_bitmap = pd_func_caller!((*self.0).copyFrameBufferBitmap)?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from getFrameBufferBitmap"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, true))
     }
 
     pub fn set_background_color(&self, color: LCDSolidColor) -> Result<(), Error> {
-        pd_func_caller!((*self.0).setBackgroundColor, color.into())
+        pd_func_caller!((*self.0).setBackgroundColor, color)
     }
 
     pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
@@ -563,18 +566,18 @@ impl Graphics {
             bg_color.into()
         )?;
         anyhow::ensure!(
-            raw_bitmap != ptr::null_mut(),
+            !raw_bitmap.is_null(),
             "Null pointer returned from new_bitmap"
         );
-        Ok(Bitmap::new(raw_bitmap))
+        Ok(Bitmap::new(raw_bitmap, true))
     }
 
     pub fn load_bitmap(&self, path: &str) -> Result<Bitmap, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let raw_bitmap = pd_func_caller!((*self.0).loadBitmap, c_path.as_ptr(), &mut out_err)?;
-        if raw_bitmap == ptr::null_mut() {
-            if out_err != ptr::null_mut() {
+        if raw_bitmap.is_null() {
+            if !out_err.is_null() {
                 let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
                 Err(anyhow!(err_msg))
             } else {
@@ -583,7 +586,7 @@ impl Graphics {
                 ))
             }
         } else {
-            Ok(Bitmap::new(raw_bitmap))
+            Ok(Bitmap::new(raw_bitmap, true))
         }
     }
 
@@ -603,8 +606,8 @@ impl Graphics {
         let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
         let raw_bitmap_table =
             pd_func_caller!((*self.0).loadBitmapTable, c_path.as_ptr(), &mut out_err)?;
-        if raw_bitmap_table == ptr::null_mut() {
-            if out_err != ptr::null_mut() {
+        if raw_bitmap_table.is_null() {
+            if !out_err.is_null() {
                 let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
                 Err(anyhow!(err_msg))
             } else {
@@ -637,6 +640,29 @@ impl Graphics {
             width,
             color.into(),
         )
+    }
+
+    pub fn fill_polygon(
+        &self,
+        coords: &[ScreenPoint],
+        color: LCDColor,
+        fillrule: LCDPolygonFillRule,
+    ) -> Result<(), Error> {
+        let n_pts = coords.len();
+        let mut coords_seq = coords
+            .iter()
+            .flat_map(|pt| [pt.x, pt.y])
+            .collect::<alloc::vec::Vec<_>>();
+
+        pd_func_caller!(
+            (*self.0).fillPolygon,
+            n_pts as i32,
+            coords_seq.as_mut_ptr(),
+            color.into(),
+            fillrule
+        )?;
+
+        Ok(())
     }
 
     pub fn fill_triangle(
@@ -682,7 +708,7 @@ impl Graphics {
 
     pub fn draw_ellipse(
         &self,
-        center: ScreenPoint,
+        origin: ScreenPoint,
         size: ScreenSize,
         line_width: i32,
         start_angle: f32,
@@ -691,8 +717,8 @@ impl Graphics {
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).drawEllipse,
-            center.x,
-            center.y,
+            origin.x,
+            origin.y,
             size.width,
             size.height,
             line_width,
@@ -706,7 +732,7 @@ impl Graphics {
         &self,
         target: OptionalBitmap,
         stencil: OptionalBitmap,
-        center: ScreenPoint,
+        origin: ScreenPoint,
         size: ScreenSize,
         line_width: i32,
         start_angle: f32,
@@ -716,8 +742,8 @@ impl Graphics {
     ) -> Result<(), Error> {
         pd_func_caller!(
             (*self.0).fillEllipse,
-            center.x,
-            center.y,
+            origin.x,
+            origin.y,
             size.width,
             size.height,
             start_angle,
@@ -728,8 +754,20 @@ impl Graphics {
 
     pub fn load_font(&self, path: &str) -> Result<Font, Error> {
         let c_path = CString::new(path).map_err(Error::msg)?;
-        let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), ptr::null_mut())?;
-        Font::new(font)
+        let mut out_err: *const crankstart_sys::ctypes::c_char = ptr::null_mut();
+        let font = pd_func_caller!((*self.0).loadFont, c_path.as_ptr(), &mut out_err)?;
+        if font.is_null() {
+            if !out_err.is_null() {
+                let err_msg = unsafe { CStr::from_ptr(out_err).to_string_lossy().into_owned() };
+                Err(anyhow!(err_msg))
+            } else {
+                Err(anyhow!(
+                    "load_font failed without providing an error message"
+                ))
+            }
+        } else {
+            Font::new(font)
+        }
     }
 
     pub fn set_font(&self, font: &Font) -> Result<(), Error> {
@@ -742,7 +780,7 @@ impl Graphics {
         pd_func_caller!(
             (*self.0).drawText,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as usize,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
@@ -755,10 +793,14 @@ impl Graphics {
             (*self.0).getTextWidth,
             font.0,
             c_text.as_ptr() as *const core::ffi::c_void,
-            text.len() as usize,
+            text.len(),
             PDStringEncoding::kUTF8Encoding,
             tracking,
         )
+    }
+
+    pub fn get_font_height(&self, font: &Font) -> Result<u8, Error> {
+        pd_func_caller!((*self.0).getFontHeight, font.0)
     }
 
     pub fn get_system_text_width(&self, text: &str, tracking: i32) -> Result<i32, Error> {

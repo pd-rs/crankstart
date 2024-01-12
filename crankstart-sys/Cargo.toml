@@ -1,6 +1,6 @@
 [package]
 name = "crankstart-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Rob Tsuk <robtsuk@google.com>"]
 edition = "2018"
 description = "A barely functional, wildly incomplete and basically undocumented Rust crate whose aim is to let you write games for the [Playdate handheld gaming system](https://play.date) in [Rust](https://www.rust-lang.org)."
@@ -9,5 +9,8 @@ repository = "https://github.com/pd-rs/crankstart"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["euclid"]
+
 [dependencies]
-euclid = { version = "0.20.13", default-features = false, features = [ "libm" ] }
+euclid = { version = "0.22.9", default-features = false, features = [ "libm" ], optional = true }

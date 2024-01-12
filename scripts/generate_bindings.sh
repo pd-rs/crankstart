@@ -35,12 +35,14 @@ bindgen "$@" \
   -- \
   -target x86_64 \
   -I"$PLAYDATE_C_API" \
+  -I"$(arm-none-eabi-gcc -print-sysroot)/include" \
   -DTARGET_EXTENSION > "${crankstart_crate_dir}/crankstart-sys/src/bindings_x86.rs"
 
 bindgen "$@" \
   -- \
   -target aarch64 \
   -I"$PLAYDATE_C_API" \
+  -I"$(arm-none-eabi-gcc -print-sysroot)/include" \
   -DTARGET_EXTENSION > "${crankstart_crate_dir}/crankstart-sys/src/bindings_aarch64.rs"
 
 bindgen "$@" \

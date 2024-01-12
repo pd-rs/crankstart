@@ -97,8 +97,8 @@ impl<'a> Iterator for CollisionInfoIter<'a> {
             let sprite = sprite.unwrap();
             let other = other.unwrap();
             let collision_info = CollisionInfo {
-                sprite: sprite,
-                other: other,
+                sprite,
+                other,
                 info: &collision_slice[index],
             };
             Some(collision_info)
@@ -116,6 +116,7 @@ pub struct SpriteInner {
     pub raw_sprite: *mut crankstart_sys::LCDSprite,
     playdate_sprite: *const playdate_sprite,
     image: Option<Bitmap>,
+    userdata: Option<Rc<dyn core::any::Any>>,
 }
 
 pub type SpritePtr = Rc<RefCell<SpriteInner>>;
@@ -224,7 +225,7 @@ impl SpriteInner {
             (*self.playdate_sprite).setImage,
             self.raw_sprite,
             bitmap.inner.borrow().raw_bitmap,
-            flip.into()
+            flip,
         )?;
         self.image = Some(bitmap);
         Ok(())
@@ -284,6 +285,32 @@ impl SpriteInner {
 
     pub fn mark_dirty(&mut self) -> Result<(), Error> {
         pd_func_caller!((*self.playdate_sprite).markDirty, self.raw_sprite,)
+    }
+
+    pub fn get_userdata<T>(&self) -> Result<Option<Rc<T>>, Error>
+    where
+        T: 'static,
+    {
+        self.userdata
+            .as_ref()
+            .map(
+                |userdata: &Rc<dyn core::any::Any>| -> Result<Rc<T>, Error> {
+                    userdata.clone().downcast::<T>().map_err(|err| {
+                        anyhow!(
+                            "Failed to cast userdata type {}",
+                            core::any::type_name::<T>(),
+                        )
+                    })
+                },
+            )
+            .transpose()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>)
+    where
+        T: 'static,
+    {
+        self.userdata = Some(userdata);
     }
 }
 
@@ -424,6 +451,20 @@ impl Sprite {
             .map_err(Error::msg)?
             .mark_dirty()
     }
+
+    pub fn get_userdata<T>(&self) -> Result<Option<Rc<T>>, Error>
+    where
+        T: 'static,
+    {
+        self.inner.borrow().get_userdata()
+    }
+
+    pub fn set_userdata<T>(&mut self, userdata: Rc<T>)
+    where
+        T: 'static,
+    {
+        self.inner.borrow_mut().set_userdata(userdata)
+    }
 }
 
 impl Hash for Sprite {
@@ -472,13 +513,14 @@ impl SpriteManager {
 
     pub fn new_sprite(&mut self) -> Result<Sprite, Error> {
         let raw_sprite = pd_func_caller!((*self.playdate_sprite).newSprite)?;
-        if raw_sprite == core::ptr::null_mut() {
+        if raw_sprite.is_null() {
             Err(anyhow!("new sprite failed"))
         } else {
             let sprite = SpriteInner {
                 raw_sprite,
                 playdate_sprite: self.playdate_sprite,
                 image: None,
+                userdata: None,
             };
             sprite.set_update_function(unsafe { SPRITE_UPDATE.expect("SPRITE_UPDATE") })?;
             let sprite_ptr = Rc::new(RefCell::new(sprite));
@@ -495,6 +537,17 @@ impl SpriteManager {
         )
     }
 
+    pub fn get_sprite_count(&self) -> Result<i32, Error> {
+        pd_func_caller!((*self.playdate_sprite).getSpriteCount)
+    }
+
+    pub fn remove_sprite(&mut self, sprite: &Sprite) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.playdate_sprite).removeSprite,
+            sprite.inner.borrow_mut().raw_sprite
+        )
+    }
+
     pub fn add_dirty_rect(dirty_rect: LCDRect) -> Result<(), Error> {
         pd_func_caller!((*Self::get_mut().playdate_sprite).addDirtyRect, dirty_rect)
     }
@@ -507,10 +560,8 @@ impl SpriteManager {
         let weak_sprite = self.sprites.get(&raw_sprite);
         weak_sprite
             .and_then(|weak_sprite| weak_sprite.upgrade())
-            .and_then(|inner_ptr| {
-                Some(Sprite {
-                    inner: inner_ptr.clone(),
-                })
+            .map(|inner_ptr| Sprite {
+                inner: inner_ptr.clone(),
             })
     }
 
@@ -553,9 +604,9 @@ impl TextSprite {
 
         let width = graphics.get_system_text_width(text, tracking)?;
 
-        let mut text_bitmap =
+        let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), background.clone())?;
-        graphics.with_context(&mut text_bitmap, || {
+        graphics.with_context(&text_bitmap, || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;
@@ -589,9 +640,9 @@ impl TextSprite {
 
         let width = graphics.get_system_text_width(text, tracking)?;
 
-        let mut text_bitmap =
+        let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), self.background.clone())?;
-        graphics.with_context(&mut text_bitmap, || {
+        graphics.with_context(&text_bitmap, || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;
