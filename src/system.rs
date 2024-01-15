@@ -68,7 +68,7 @@ impl System {
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
         let raw_menu_item = pd_func_caller!(
             (*self.0).addMenuItem,
-            c_text.as_ptr() as *mut core::ffi::c_char,
+            c_text.as_ptr(),
             Some(Self::menu_item_callback),
             raw_callback_ptr as *mut c_void
         )?;
@@ -96,7 +96,7 @@ impl System {
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
         let raw_menu_item = pd_func_caller!(
             (*self.0).addCheckmarkMenuItem,
-            c_text.as_ptr() as *mut core::ffi::c_char,
+            c_text.as_ptr(),
             initial_checked_state as c_int,
             Some(Self::menu_item_callback),
             raw_callback_ptr as *mut c_void
@@ -127,14 +127,14 @@ impl System {
             .iter()
             .map(|s| CString::new(s.clone()).map_err(|e| anyhow!("CString::new: {}", e)))
             .collect::<Result<Vec<CString>, Error>>()?;
-        let c_options_ptrs: Vec<*const i8> = c_options.iter().map(|c| c.as_ptr()).collect();
+        let c_options_ptrs: Vec<*const u8> = c_options.iter().map(|c| c.as_ptr()).collect();
         let c_options_ptrs_ptr = c_options_ptrs.as_ptr();
         let option_titles = c_options_ptrs_ptr as *mut *const c_char;
         let wrapped_callback = Box::new(callback);
         let raw_callback_ptr = Box::into_raw(wrapped_callback);
         let raw_menu_item = pd_func_caller!(
             (*self.0).addOptionsMenuItem,
-            c_text.as_ptr() as *mut core::ffi::c_char,
+            c_text.as_ptr(),
             option_titles,
             options_count,
             Some(Self::menu_item_callback),
