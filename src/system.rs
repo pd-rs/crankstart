@@ -127,7 +127,7 @@ impl System {
             .iter()
             .map(|s| CString::new(s.clone()).map_err(|e| anyhow!("CString::new: {}", e)))
             .collect::<Result<Vec<CString>, Error>>()?;
-        let c_options_ptrs: Vec<*const u8> = c_options.iter().map(|c| c.as_ptr()).collect();
+        let c_options_ptrs: Vec<*const c_char> = c_options.iter().map(|c| c.as_ptr()).collect();
         let c_options_ptrs_ptr = c_options_ptrs.as_ptr();
         let option_titles = c_options_ptrs_ptr as *mut *const c_char;
         let wrapped_callback = Box::new(callback);
