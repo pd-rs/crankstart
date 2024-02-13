@@ -2,7 +2,7 @@ extern crate alloc;
 
 use {
     crate::{
-        graphics::{Bitmap, Graphics, LCDBitmapFlip, LCDColor, PDRect},
+        graphics::{Bitmap, Graphics, LCDBitmapDrawMode, LCDBitmapFlip, LCDColor, PDRect},
         log_to_console, pd_func_caller, pd_func_caller_log,
         system::System,
         Playdate,
@@ -239,6 +239,10 @@ impl SpriteInner {
         pd_func_caller!((*self.playdate_sprite).getTag, self.raw_sprite)
     }
 
+    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+        pd_func_caller!((*self.playdate_sprite).setDrawMode, self.raw_sprite, mode)
+    }
+
     pub fn set_visible(&mut self, visible: bool) -> Result<(), Error> {
         pd_func_caller!(
             (*self.playdate_sprite).setVisible,
@@ -435,6 +439,13 @@ impl Sprite {
 
     pub fn get_tag(&self) -> Result<u8, Error> {
         self.inner.try_borrow().map_err(Error::msg)?.get_tag()
+    }
+
+    pub fn set_draw_mode(&mut self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+        self.inner
+            .try_borrow_mut()
+            .map_err(Error::msg)?
+            .set_draw_mode(mode)
     }
 
     pub fn move_to(&mut self, x: f32, y: f32) -> Result<(), Error> {
