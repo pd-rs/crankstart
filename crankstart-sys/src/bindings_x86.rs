@@ -366,7 +366,8 @@ pub struct playdate_graphics {
     pub clear: ::core::option::Option<unsafe extern "C" fn(color: LCDColor)>,
     pub setBackgroundColor: ::core::option::Option<unsafe extern "C" fn(color: LCDSolidColor)>,
     pub setStencil: ::core::option::Option<unsafe extern "C" fn(stencil: *mut LCDBitmap)>,
-    pub setDrawMode: ::core::option::Option<unsafe extern "C" fn(mode: LCDBitmapDrawMode)>,
+    pub setDrawMode:
+        ::core::option::Option<unsafe extern "C" fn(mode: LCDBitmapDrawMode) -> LCDBitmapDrawMode>,
     pub setDrawOffset:
         ::core::option::Option<unsafe extern "C" fn(dx: ctypes::c_int, dy: ctypes::c_int)>,
     pub setClipRect: ::core::option::Option<
@@ -653,6 +654,23 @@ pub struct playdate_graphics {
         unsafe extern "C" fn(data: *mut LCDFontData, wide: ctypes::c_int) -> *mut LCDFont,
     >,
     pub getTextTracking: ::core::option::Option<unsafe extern "C" fn() -> ctypes::c_int>,
+    pub setPixel: ::core::option::Option<
+        unsafe extern "C" fn(x: ctypes::c_int, y: ctypes::c_int, c: LCDColor),
+    >,
+    pub getBitmapPixel: ::core::option::Option<
+        unsafe extern "C" fn(
+            bitmap: *mut LCDBitmap,
+            x: ctypes::c_int,
+            y: ctypes::c_int,
+        ) -> LCDSolidColor,
+    >,
+    pub getBitmapTableInfo: ::core::option::Option<
+        unsafe extern "C" fn(
+            table: *mut LCDBitmapTable,
+            count: *mut ctypes::c_int,
+            width: *mut ctypes::c_int,
+        ),
+    >,
 }
 #[test]
 fn bindgen_test_layout_playdate_graphics() {
@@ -660,7 +678,7 @@ fn bindgen_test_layout_playdate_graphics() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<playdate_graphics>(),
-        480usize,
+        504usize,
         concat!("Size of: ", stringify!(playdate_graphics))
     );
     assert_eq!(
@@ -1266,6 +1284,36 @@ fn bindgen_test_layout_playdate_graphics() {
             stringify!(playdate_graphics),
             "::",
             stringify!(getTextTracking)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).setPixel) as usize - ptr as usize },
+        480usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(setPixel)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).getBitmapPixel) as usize - ptr as usize },
+        488usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(getBitmapPixel)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).getBitmapTableInfo) as usize - ptr as usize },
+        496usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_graphics),
+            "::",
+            stringify!(getBitmapTableInfo)
         )
     );
 }
@@ -5366,6 +5414,7 @@ pub struct playdate_sound_sample {
             format: SoundFormat,
             sampleRate: u32,
             byteCount: ctypes::c_int,
+            shouldFreeData: ctypes::c_int,
         ) -> *mut AudioSample,
     >,
     pub getData: ::core::option::Option<
@@ -7254,7 +7303,7 @@ pub struct playdate_sound_sequence {
             loops: ctypes::c_int,
         ),
     >,
-    pub getTempo:
+    pub getTempo_deprecated:
         ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence) -> ctypes::c_int>,
     pub setTempo:
         ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence, stepsPerSecond: f32)>,
@@ -7298,6 +7347,7 @@ pub struct playdate_sound_sequence {
             playNotes: ctypes::c_int,
         ),
     >,
+    pub getTempo: ::core::option::Option<unsafe extern "C" fn(seq: *mut SoundSequence) -> f32>,
 }
 #[test]
 fn bindgen_test_layout_playdate_sound_sequence() {
@@ -7306,7 +7356,7 @@ fn bindgen_test_layout_playdate_sound_sequence() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::core::mem::size_of::<playdate_sound_sequence>(),
-        152usize,
+        160usize,
         concat!("Size of: ", stringify!(playdate_sound_sequence))
     );
     assert_eq!(
@@ -7375,13 +7425,13 @@ fn bindgen_test_layout_playdate_sound_sequence() {
         )
     );
     assert_eq!(
-        unsafe { ::core::ptr::addr_of!((*ptr).getTempo) as usize - ptr as usize },
+        unsafe { ::core::ptr::addr_of!((*ptr).getTempo_deprecated) as usize - ptr as usize },
         48usize,
         concat!(
             "Offset of field: ",
             stringify!(playdate_sound_sequence),
             "::",
-            stringify!(getTempo)
+            stringify!(getTempo_deprecated)
         )
     );
     assert_eq!(
@@ -7502,6 +7552,16 @@ fn bindgen_test_layout_playdate_sound_sequence() {
             stringify!(playdate_sound_sequence),
             "::",
             stringify!(setCurrentStep)
+        )
+    );
+    assert_eq!(
+        unsafe { ::core::ptr::addr_of!((*ptr).getTempo) as usize - ptr as usize },
+        152usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(playdate_sound_sequence),
+            "::",
+            stringify!(getTempo)
         )
     );
 }
