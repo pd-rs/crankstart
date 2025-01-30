@@ -204,10 +204,10 @@ impl<T: 'static + Game> GameRunner<T> {
 
 #[macro_export]
 macro_rules! crankstart_game {
-    ($game_struct:tt) => {
+    ($game_struct:ty) => {
         crankstart_game!($game_struct, PDSystemEvent::kEventInit);
     };
-    ($game_struct:tt, $pd_system_event:expr) => {
+    ($game_struct:ty, $pd_system_event:expr) => {
         pub mod game_setup {
             extern crate alloc;
             use super::*;
@@ -262,7 +262,7 @@ macro_rules! crankstart_game {
                         .unwrap_or_else(|err| {
                             log_to_console!("Got error while setting update callback: {err:#}");
                         });
-                    let game = match $game_struct::new(&mut playdate) {
+                    let game = match <$game_struct>::new(&mut playdate) {
                         Ok(game) => Some(game),
                         Err(err) => {
                             log_to_console!("Got error while creating game: {err:#}");
