@@ -73,7 +73,7 @@ macro_rules! pd_func_caller {
             use alloc::format;
             let raw_fn = $raw_fn_opt
                 .ok_or_else(|| anyhow::anyhow!("{} did not contain a function pointer", stringify!($raw_fn_opt)))?;
-            Ok(raw_fn($($arg)*))
+            Ok::<_, Error>(raw_fn($($arg)*))
         }
     };
     ($raw_fn_opt:expr) => {
@@ -81,7 +81,7 @@ macro_rules! pd_func_caller {
             use alloc::format;
             let raw_fn = $raw_fn_opt
                 .ok_or_else(|| anyhow::anyhow!("{} did not contain a function pointer", stringify!($raw_fn_opt)))?;
-            Ok(raw_fn())
+            Ok::<_, Error>(raw_fn())
         }
     };
 }
