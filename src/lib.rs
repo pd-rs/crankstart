@@ -29,7 +29,9 @@ use {
     alloc::boxed::Box,
     anyhow::Error,
     core::{fmt, panic::PanicInfo},
-    crankstart_sys::{playdate_sprite, LCDRect, LCDSprite, SpriteCollisionResponseType},
+    crankstart_sys::{
+        playdate_sprite, LCDRect, LCDSprite, PDSystemEvent, SpriteCollisionResponseType,
+    },
 };
 
 pub struct Playdate {
@@ -125,6 +127,10 @@ pub trait Game {
     fn draw_and_update_sprites(&self) -> bool {
         true
     }
+
+    fn handle_event(&mut self, playdate: &mut Playdate, event: PDSystemEvent) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub type GamePtr<T> = Box<T>;
@@ -200,6 +206,21 @@ impl<T: 'static + Game> GameRunner<T> {
     pub fn playdate_sprite(&self) -> *const playdate_sprite {
         SpriteManager::get_mut().playdate_sprite
     }
+
+    pub fn handle_event(&mut self, event: PDSystemEvent) {
+        if self.init_failed {
+            return;
+        }
+
+        if let Some(game) = self.game.as_mut() {
+            if let Err(err) = game.handle_event(&mut self.playdate, event) {
+                log_to_console!("Error in handle_event: {err:#}")
+            }
+        } else {
+            log_to_console!("can't deliver event to game");
+            self.init_failed = true;
+        }
+    }
 }
 
 #[macro_export]
@@ -273,6 +294,11 @@ macro_rules! crankstart_game {
                     unsafe {
                         GAME_RUNNER = Some(GameRunner::new(game, playdate));
                     }
+                }
+
+                if event != PDSystemEvent::kEventInit && event != PDSystemEvent::kEventInitLua {
+                    let game_runner = unsafe { GAME_RUNNER.as_mut().expect("GAME_RUNNER") };
+                    game_runner.handle_event(event);
                 }
                 0
             }
