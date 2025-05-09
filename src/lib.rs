@@ -14,6 +14,7 @@ pub mod sound;
 pub mod sprite;
 pub mod system;
 
+use alloc::format;
 use {
     crate::{
         display::Display,
@@ -307,6 +308,15 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
             location.line()
         )
         .expect("write");
+        #[cfg(debug_assertions)]
+        {
+            // Try and save panic to file if built in debug mode
+            let fs = FileSystem::get();
+            let panic_str = format!("{:?}", panic_info);
+            let file = fs.open("panic.txt", FileOptions::kFileWrite).unwrap();
+            let _num_bytes_written = file.write(panic_str.as_bytes()).unwrap();
+            file.flush().unwrap();
+        }
         System::log_to_console(output.as_str());
     } else {
         System::log_to_console("panic\0");
@@ -320,11 +330,12 @@ fn panic(#[allow(unused)] panic_info: &PanicInfo) -> ! {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        abort_with_addr(0xdeadbeef);
+        abort_with_addr(0x04);
     }
 }
 
 use core::alloc::{GlobalAlloc, Layout};
+use crankstart_sys::FileOptions;
 
 pub(crate) struct PlaydateAllocator;
 
