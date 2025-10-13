@@ -36,7 +36,7 @@ pub enum LCDColor {
 impl From<LCDColor> for usize {
     fn from(color: LCDColor) -> Self {
         match color {
-            LCDColor::Solid(solid_color) => solid_color as usize,
+            LCDColor::Solid(solid_color) => solid_color.0.into(),
             LCDColor::Pattern(pattern) => {
                 let pattern_ptr = &pattern as *const u8;
                 pattern_ptr as usize

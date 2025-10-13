@@ -15,7 +15,7 @@ set -- "$crankstart_crate_dir/crankstart-sys/wrapper.h" \
   "--ctypes-prefix"         "ctypes" \
   "--with-derive-default" \
   "--with-derive-eq" \
-  "--default-enum-style"    "rust" \
+  "--default-enum-style"    "newtype" \
   "--allowlist-type"        "PlaydateAPI" \
   "--allowlist-type"        "PDSystemEvent" \
   "--allowlist-type"        "LCDSolidColor" \

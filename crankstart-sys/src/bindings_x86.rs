@@ -314,70 +314,78 @@ const _: () = {
     ["Offset of field: LCDRect::top"][::core::mem::offset_of!(LCDRect, top) - 8usize];
     ["Offset of field: LCDRect::bottom"][::core::mem::offset_of!(LCDRect, bottom) - 12usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LCDBitmapDrawMode {
-    kDrawModeCopy = 0,
-    kDrawModeWhiteTransparent = 1,
-    kDrawModeBlackTransparent = 2,
-    kDrawModeFillWhite = 3,
-    kDrawModeFillBlack = 4,
-    kDrawModeXOR = 5,
-    kDrawModeNXOR = 6,
-    kDrawModeInverted = 7,
+impl LCDBitmapDrawMode {
+    pub const kDrawModeCopy: LCDBitmapDrawMode = LCDBitmapDrawMode(0);
+    pub const kDrawModeWhiteTransparent: LCDBitmapDrawMode = LCDBitmapDrawMode(1);
+    pub const kDrawModeBlackTransparent: LCDBitmapDrawMode = LCDBitmapDrawMode(2);
+    pub const kDrawModeFillWhite: LCDBitmapDrawMode = LCDBitmapDrawMode(3);
+    pub const kDrawModeFillBlack: LCDBitmapDrawMode = LCDBitmapDrawMode(4);
+    pub const kDrawModeXOR: LCDBitmapDrawMode = LCDBitmapDrawMode(5);
+    pub const kDrawModeNXOR: LCDBitmapDrawMode = LCDBitmapDrawMode(6);
+    pub const kDrawModeInverted: LCDBitmapDrawMode = LCDBitmapDrawMode(7);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LCDBitmapFlip {
-    kBitmapUnflipped = 0,
-    kBitmapFlippedX = 1,
-    kBitmapFlippedY = 2,
-    kBitmapFlippedXY = 3,
+pub struct LCDBitmapDrawMode(pub ctypes::c_uint);
+impl LCDBitmapFlip {
+    pub const kBitmapUnflipped: LCDBitmapFlip = LCDBitmapFlip(0);
+    pub const kBitmapFlippedX: LCDBitmapFlip = LCDBitmapFlip(1);
+    pub const kBitmapFlippedY: LCDBitmapFlip = LCDBitmapFlip(2);
+    pub const kBitmapFlippedXY: LCDBitmapFlip = LCDBitmapFlip(3);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LCDSolidColor {
-    kColorBlack = 0,
-    kColorWhite = 1,
-    kColorClear = 2,
-    kColorXOR = 3,
+pub struct LCDBitmapFlip(pub ctypes::c_uint);
+impl LCDSolidColor {
+    pub const kColorBlack: LCDSolidColor = LCDSolidColor(0);
+    pub const kColorWhite: LCDSolidColor = LCDSolidColor(1);
+    pub const kColorClear: LCDSolidColor = LCDSolidColor(2);
+    pub const kColorXOR: LCDSolidColor = LCDSolidColor(3);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LCDLineCapStyle {
-    kLineCapStyleButt = 0,
-    kLineCapStyleSquare = 1,
-    kLineCapStyleRound = 2,
+pub struct LCDSolidColor(pub ctypes::c_uint);
+impl LCDLineCapStyle {
+    pub const kLineCapStyleButt: LCDLineCapStyle = LCDLineCapStyle(0);
+    pub const kLineCapStyleSquare: LCDLineCapStyle = LCDLineCapStyle(1);
+    pub const kLineCapStyleRound: LCDLineCapStyle = LCDLineCapStyle(2);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDStringEncoding {
-    kASCIIEncoding = 0,
-    kUTF8Encoding = 1,
-    k16BitLEEncoding = 2,
+pub struct LCDLineCapStyle(pub ctypes::c_uint);
+impl PDStringEncoding {
+    pub const kASCIIEncoding: PDStringEncoding = PDStringEncoding(0);
+    pub const kUTF8Encoding: PDStringEncoding = PDStringEncoding(1);
+    pub const k16BitLEEncoding: PDStringEncoding = PDStringEncoding(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct PDStringEncoding(pub ctypes::c_uint);
 pub type LCDPattern = [u8; 16usize];
 pub type LCDColor = usize;
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LCDPolygonFillRule {
-    kPolygonFillNonZero = 0,
-    kPolygonFillEvenOdd = 1,
+impl LCDPolygonFillRule {
+    pub const kPolygonFillNonZero: LCDPolygonFillRule = LCDPolygonFillRule(0);
+    pub const kPolygonFillEvenOdd: LCDPolygonFillRule = LCDPolygonFillRule(1);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDTextWrappingMode {
-    kWrapClip = 0,
-    kWrapCharacter = 1,
-    kWrapWord = 2,
+pub struct LCDPolygonFillRule(pub ctypes::c_uint);
+impl PDTextWrappingMode {
+    pub const kWrapClip: PDTextWrappingMode = PDTextWrappingMode(0);
+    pub const kWrapCharacter: PDTextWrappingMode = PDTextWrappingMode(1);
+    pub const kWrapWord: PDTextWrappingMode = PDTextWrappingMode(2);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDTextAlignment {
-    kAlignTextLeft = 0,
-    kAlignTextCenter = 1,
-    kAlignTextRight = 2,
+pub struct PDTextWrappingMode(pub ctypes::c_uint);
+impl PDTextAlignment {
+    pub const kAlignTextLeft: PDTextAlignment = PDTextAlignment(0);
+    pub const kAlignTextCenter: PDTextAlignment = PDTextAlignment(1);
+    pub const kAlignTextRight: PDTextAlignment = PDTextAlignment(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct PDTextAlignment(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct LCDBitmap {
@@ -1168,22 +1176,24 @@ impl ::core::ops::BitAndAssign for PDButtons {
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct PDButtons(pub ctypes::c_uint);
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDLanguage {
-    kPDLanguageEnglish = 0,
-    kPDLanguageJapanese = 1,
-    kPDLanguageUnknown = 2,
+impl PDLanguage {
+    pub const kPDLanguageEnglish: PDLanguage = PDLanguage(0);
+    pub const kPDLanguageJapanese: PDLanguage = PDLanguage(1);
+    pub const kPDLanguageUnknown: PDLanguage = PDLanguage(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct PDLanguage(pub ctypes::c_uint);
 pub type AccessRequestCallback =
     ::core::option::Option<unsafe extern "C" fn(allowed: bool, userdata: *mut ctypes::c_void)>;
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum accessReply {
-    kAccessAsk = 0,
-    kAccessDeny = 1,
-    kAccessAllow = 2,
+impl accessReply {
+    pub const kAccessAsk: accessReply = accessReply(0);
+    pub const kAccessDeny: accessReply = accessReply(1);
+    pub const kAccessAllow: accessReply = accessReply(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct accessReply(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct PDDateTime {
@@ -1212,13 +1222,14 @@ const _: () = {
 pub struct PDMenuItem {
     _unused: [u8; 0],
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDPeripherals {
-    kNone = 0,
-    kAccelerometer = 1,
-    kAllPeripherals = 65535,
+impl PDPeripherals {
+    pub const kNone: PDPeripherals = PDPeripherals(0);
+    pub const kAccelerometer: PDPeripherals = PDPeripherals(1);
+    pub const kAllPeripherals: PDPeripherals = PDPeripherals(65535);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct PDPeripherals(pub ctypes::c_uint);
 pub type PDCallbackFunction =
     ::core::option::Option<unsafe extern "C" fn(userdata: *mut ctypes::c_void) -> ctypes::c_int>;
 pub type PDMenuItemCallbackFunction =
@@ -1516,13 +1527,14 @@ pub struct LuaUDObject {
 pub struct LCDSprite {
     _unused: [u8; 0],
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum l_valtype {
-    kInt = 0,
-    kFloat = 1,
-    kStr = 2,
+impl l_valtype {
+    pub const kInt: l_valtype = l_valtype(0);
+    pub const kFloat: l_valtype = l_valtype(1);
+    pub const kStr: l_valtype = l_valtype(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct l_valtype(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct lua_reg {
@@ -1545,19 +1557,20 @@ impl Default for lua_reg {
         }
     }
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LuaType {
-    kTypeNil = 0,
-    kTypeBool = 1,
-    kTypeInt = 2,
-    kTypeFloat = 3,
-    kTypeString = 4,
-    kTypeTable = 5,
-    kTypeFunction = 6,
-    kTypeThread = 7,
-    kTypeObject = 8,
+impl LuaType {
+    pub const kTypeNil: LuaType = LuaType(0);
+    pub const kTypeBool: LuaType = LuaType(1);
+    pub const kTypeInt: LuaType = LuaType(2);
+    pub const kTypeFloat: LuaType = LuaType(3);
+    pub const kTypeString: LuaType = LuaType(4);
+    pub const kTypeTable: LuaType = LuaType(5);
+    pub const kTypeFunction: LuaType = LuaType(6);
+    pub const kTypeThread: LuaType = LuaType(7);
+    pub const kTypeObject: LuaType = LuaType(8);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct LuaType(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct lua_val {
@@ -1762,18 +1775,19 @@ const _: () = {
     ["Offset of field: playdate_lua::callFunction"]
         [::core::mem::offset_of!(playdate_lua, callFunction) - 248usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum json_value_type {
-    kJSONNull = 0,
-    kJSONTrue = 1,
-    kJSONFalse = 2,
-    kJSONInteger = 3,
-    kJSONFloat = 4,
-    kJSONString = 5,
-    kJSONArray = 6,
-    kJSONTable = 7,
+impl json_value_type {
+    pub const kJSONNull: json_value_type = json_value_type(0);
+    pub const kJSONTrue: json_value_type = json_value_type(1);
+    pub const kJSONFalse: json_value_type = json_value_type(2);
+    pub const kJSONInteger: json_value_type = json_value_type(3);
+    pub const kJSONFloat: json_value_type = json_value_type(4);
+    pub const kJSONString: json_value_type = json_value_type(5);
+    pub const kJSONArray: json_value_type = json_value_type(6);
+    pub const kJSONTable: json_value_type = json_value_type(7);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct json_value_type(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct json_value {
@@ -2222,14 +2236,15 @@ const _: () = {
     ["Offset of field: playdate_json::decodeString"]
         [::core::mem::offset_of!(playdate_json, decodeString) - 16usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum SpriteCollisionResponseType {
-    kCollisionTypeSlide = 0,
-    kCollisionTypeFreeze = 1,
-    kCollisionTypeOverlap = 2,
-    kCollisionTypeBounce = 3,
+impl SpriteCollisionResponseType {
+    pub const kCollisionTypeSlide: SpriteCollisionResponseType = SpriteCollisionResponseType(0);
+    pub const kCollisionTypeFreeze: SpriteCollisionResponseType = SpriteCollisionResponseType(1);
+    pub const kCollisionTypeOverlap: SpriteCollisionResponseType = SpriteCollisionResponseType(2);
+    pub const kCollisionTypeBounce: SpriteCollisionResponseType = SpriteCollisionResponseType(3);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct SpriteCollisionResponseType(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct PDRect {
@@ -2668,16 +2683,17 @@ const _: () = {
     ["Offset of field: playdate_sprite::getTilemap"]
         [::core::mem::offset_of!(playdate_sprite, getTilemap) - 512usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum SoundFormat {
-    kSound8bitMono = 0,
-    kSound8bitStereo = 1,
-    kSound16bitMono = 2,
-    kSound16bitStereo = 3,
-    kSoundADPCMMono = 4,
-    kSoundADPCMStereo = 5,
+impl SoundFormat {
+    pub const kSound8bitMono: SoundFormat = SoundFormat(0);
+    pub const kSound8bitStereo: SoundFormat = SoundFormat(1);
+    pub const kSound16bitMono: SoundFormat = SoundFormat(2);
+    pub const kSound16bitStereo: SoundFormat = SoundFormat(3);
+    pub const kSoundADPCMMono: SoundFormat = SoundFormat(4);
+    pub const kSoundADPCMStereo: SoundFormat = SoundFormat(5);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct SoundFormat(pub ctypes::c_uint);
 pub type MIDINote = f32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3074,18 +3090,19 @@ const _: () = {
     ["Offset of field: playdate_sound_signal::newSignalForValue"]
         [::core::mem::offset_of!(playdate_sound_signal, newSignalForValue) - 40usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum LFOType {
-    kLFOTypeSquare = 0,
-    kLFOTypeTriangle = 1,
-    kLFOTypeSine = 2,
-    kLFOTypeSampleAndHold = 3,
-    kLFOTypeSawtoothUp = 4,
-    kLFOTypeSawtoothDown = 5,
-    kLFOTypeArpeggiator = 6,
-    kLFOTypeFunction = 7,
+impl LFOType {
+    pub const kLFOTypeSquare: LFOType = LFOType(0);
+    pub const kLFOTypeTriangle: LFOType = LFOType(1);
+    pub const kLFOTypeSine: LFOType = LFOType(2);
+    pub const kLFOTypeSampleAndHold: LFOType = LFOType(3);
+    pub const kLFOTypeSawtoothUp: LFOType = LFOType(4);
+    pub const kLFOTypeSawtoothDown: LFOType = LFOType(5);
+    pub const kLFOTypeArpeggiator: LFOType = LFOType(6);
+    pub const kLFOTypeFunction: LFOType = LFOType(7);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct LFOType(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct PDSynthLFO {
@@ -3234,18 +3251,19 @@ const _: () = {
     ["Offset of field: playdate_sound_envelope::setRateScaling"]
         [::core::mem::offset_of!(playdate_sound_envelope, setRateScaling) - 88usize];
 };
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum SoundWaveform {
-    kWaveformSquare = 0,
-    kWaveformTriangle = 1,
-    kWaveformSine = 2,
-    kWaveformNoise = 3,
-    kWaveformSawtooth = 4,
-    kWaveformPOPhase = 5,
-    kWaveformPODigital = 6,
-    kWaveformPOVosim = 7,
+impl SoundWaveform {
+    pub const kWaveformSquare: SoundWaveform = SoundWaveform(0);
+    pub const kWaveformTriangle: SoundWaveform = SoundWaveform(1);
+    pub const kWaveformSine: SoundWaveform = SoundWaveform(2);
+    pub const kWaveformNoise: SoundWaveform = SoundWaveform(3);
+    pub const kWaveformSawtooth: SoundWaveform = SoundWaveform(4);
+    pub const kWaveformPOPhase: SoundWaveform = SoundWaveform(5);
+    pub const kWaveformPODigital: SoundWaveform = SoundWaveform(6);
+    pub const kWaveformPOVosim: SoundWaveform = SoundWaveform(7);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct SoundWaveform(pub ctypes::c_uint);
 pub type synthRenderFunc = ::core::option::Option<
     unsafe extern "C" fn(
         userdata: *mut ctypes::c_void,
@@ -3817,17 +3835,18 @@ const _: () = {
 pub struct TwoPoleFilter {
     _unused: [u8; 0],
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum TwoPoleFilterType {
-    kFilterTypeLowPass = 0,
-    kFilterTypeHighPass = 1,
-    kFilterTypeBandPass = 2,
-    kFilterTypeNotch = 3,
-    kFilterTypePEQ = 4,
-    kFilterTypeLowShelf = 5,
-    kFilterTypeHighShelf = 6,
+impl TwoPoleFilterType {
+    pub const kFilterTypeLowPass: TwoPoleFilterType = TwoPoleFilterType(0);
+    pub const kFilterTypeHighPass: TwoPoleFilterType = TwoPoleFilterType(1);
+    pub const kFilterTypeBandPass: TwoPoleFilterType = TwoPoleFilterType(2);
+    pub const kFilterTypeNotch: TwoPoleFilterType = TwoPoleFilterType(3);
+    pub const kFilterTypePEQ: TwoPoleFilterType = TwoPoleFilterType(4);
+    pub const kFilterTypeLowShelf: TwoPoleFilterType = TwoPoleFilterType(5);
+    pub const kFilterTypeHighShelf: TwoPoleFilterType = TwoPoleFilterType(6);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct TwoPoleFilterType(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound_effect_twopolefilter {
@@ -4323,13 +4342,14 @@ pub type RecordCallback = ::core::option::Option<
         length: ctypes::c_int,
     ) -> ctypes::c_int,
 >;
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum MicSource {
-    kMicInputAutodetect = 0,
-    kMicInputInternal = 1,
-    kMicInputHeadset = 2,
+impl MicSource {
+    pub const kMicInputAutodetect: MicSource = MicSource(0);
+    pub const kMicInputInternal: MicSource = MicSource(1);
+    pub const kMicInputHeadset: MicSource = MicSource(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct MicSource(pub ctypes::c_uint);
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct playdate_sound {
@@ -4652,39 +4672,41 @@ const _: () = {
     ["Offset of field: playdate_scoreboards::freeScoresList"]
         [::core::mem::offset_of!(playdate_scoreboards, freeScoresList) - 48usize];
 };
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDNetErr {
-    NET_OK = 0,
-    NET_NO_DEVICE = -1,
-    NET_BUSY = -2,
-    NET_WRITE_ERROR = -3,
-    NET_WRITE_BUSY = -4,
-    NET_WRITE_TIMEOUT = -5,
-    NET_READ_ERROR = -6,
-    NET_READ_BUSY = -7,
-    NET_READ_TIMEOUT = -8,
-    NET_READ_OVERFLOW = -9,
-    NET_FRAME_ERROR = -10,
-    NET_BAD_RESPONSE = -11,
-    NET_ERROR_RESPONSE = -12,
-    NET_RESET_TIMEOUT = -13,
-    NET_BUFFER_TOO_SMALL = -14,
-    NET_UNEXPECTED_RESPONSE = -15,
-    NET_NOT_CONNECTED_TO_AP = -16,
-    NET_NOT_IMPLEMENTED = -17,
-    NET_CONNECTION_CLOSED = -18,
+impl PDNetErr {
+    pub const NET_OK: PDNetErr = PDNetErr(0);
+    pub const NET_NO_DEVICE: PDNetErr = PDNetErr(-1);
+    pub const NET_BUSY: PDNetErr = PDNetErr(-2);
+    pub const NET_WRITE_ERROR: PDNetErr = PDNetErr(-3);
+    pub const NET_WRITE_BUSY: PDNetErr = PDNetErr(-4);
+    pub const NET_WRITE_TIMEOUT: PDNetErr = PDNetErr(-5);
+    pub const NET_READ_ERROR: PDNetErr = PDNetErr(-6);
+    pub const NET_READ_BUSY: PDNetErr = PDNetErr(-7);
+    pub const NET_READ_TIMEOUT: PDNetErr = PDNetErr(-8);
+    pub const NET_READ_OVERFLOW: PDNetErr = PDNetErr(-9);
+    pub const NET_FRAME_ERROR: PDNetErr = PDNetErr(-10);
+    pub const NET_BAD_RESPONSE: PDNetErr = PDNetErr(-11);
+    pub const NET_ERROR_RESPONSE: PDNetErr = PDNetErr(-12);
+    pub const NET_RESET_TIMEOUT: PDNetErr = PDNetErr(-13);
+    pub const NET_BUFFER_TOO_SMALL: PDNetErr = PDNetErr(-14);
+    pub const NET_UNEXPECTED_RESPONSE: PDNetErr = PDNetErr(-15);
+    pub const NET_NOT_CONNECTED_TO_AP: PDNetErr = PDNetErr(-16);
+    pub const NET_NOT_IMPLEMENTED: PDNetErr = PDNetErr(-17);
+    pub const NET_CONNECTION_CLOSED: PDNetErr = PDNetErr(-18);
 }
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum WifiStatus {
+pub struct PDNetErr(pub ctypes::c_int);
+impl WifiStatus {
     #[doc = "!< Not connected to an AP"]
-    kWifiNotConnected = 0,
+    pub const kWifiNotConnected: WifiStatus = WifiStatus(0);
     #[doc = "!< Device is connected to an AP"]
-    kWifiConnected = 1,
+    pub const kWifiConnected: WifiStatus = WifiStatus(1);
     #[doc = "!< A connection has been attempted and no configured AP was available"]
-    kWifiNotAvailable = 2,
+    pub const kWifiNotAvailable: WifiStatus = WifiStatus(2);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct WifiStatus(pub ctypes::c_uint);
 pub type HTTPConnectionCallback =
     ::core::option::Option<unsafe extern "C" fn(connection: *mut HTTPConnection)>;
 pub type HTTPHeaderCallback = ::core::option::Option<
@@ -5052,22 +5074,23 @@ impl Default for PlaydateAPI {
         }
     }
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum PDSystemEvent {
-    kEventInit = 0,
-    kEventInitLua = 1,
-    kEventLock = 2,
-    kEventUnlock = 3,
-    kEventPause = 4,
-    kEventResume = 5,
-    kEventTerminate = 6,
-    kEventKeyPressed = 7,
-    kEventKeyReleased = 8,
-    kEventLowPower = 9,
-    kEventMirrorStarted = 10,
-    kEventMirrorEnded = 11,
+impl PDSystemEvent {
+    pub const kEventInit: PDSystemEvent = PDSystemEvent(0);
+    pub const kEventInitLua: PDSystemEvent = PDSystemEvent(1);
+    pub const kEventLock: PDSystemEvent = PDSystemEvent(2);
+    pub const kEventUnlock: PDSystemEvent = PDSystemEvent(3);
+    pub const kEventPause: PDSystemEvent = PDSystemEvent(4);
+    pub const kEventResume: PDSystemEvent = PDSystemEvent(5);
+    pub const kEventTerminate: PDSystemEvent = PDSystemEvent(6);
+    pub const kEventKeyPressed: PDSystemEvent = PDSystemEvent(7);
+    pub const kEventKeyReleased: PDSystemEvent = PDSystemEvent(8);
+    pub const kEventLowPower: PDSystemEvent = PDSystemEvent(9);
+    pub const kEventMirrorStarted: PDSystemEvent = PDSystemEvent(10);
+    pub const kEventMirrorEnded: PDSystemEvent = PDSystemEvent(11);
 }
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct PDSystemEvent(pub ctypes::c_uint);
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
