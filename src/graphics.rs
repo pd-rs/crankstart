@@ -546,7 +546,7 @@ impl Graphics {
         pd_func_caller!((*self.0).setBackgroundColor, color)
     }
 
-    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<(), Error> {
+    pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<LCDBitmapDrawMode, Error> {
         pd_func_caller!((*self.0).setDrawMode, mode)
     }
 
