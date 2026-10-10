@@ -47,7 +47,7 @@ impl FileSystem {
     }
 
     pub fn get() -> Self {
-        unsafe { FILE_SYSTEM.clone() }
+        unsafe { (&raw const FILE_SYSTEM).read().clone() }
     }
 
     pub fn listfiles(&self, path: &str, show_invisible: bool) -> Result<Vec<String>, Error> {

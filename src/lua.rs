@@ -20,7 +20,7 @@ impl Lua {
     }
 
     pub fn get() -> Self {
-        unsafe { LUA.clone() }
+        unsafe { (&raw const LUA).read().clone() }
     }
 
     pub fn add_function(&self, f: lua_CFunction, name: &str) -> Result<(), Error> {

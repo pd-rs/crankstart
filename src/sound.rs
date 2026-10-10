@@ -19,20 +19,33 @@
 //! ```
 
 use crate::{pd_func_caller, pd_func_caller_log};
+use alloc::string::String;
+use core::marker::PhantomData;
 use crankstart_sys::ctypes;
+use crankstart_sys::LFOType;
 
 use anyhow::{anyhow, ensure, Error, Result};
 use core::ptr;
-use cstr_core::CString;
+use cstr_core::{CStr, CString};
 
 pub mod sampleplayer;
 pub use sampleplayer::{AudioSample, SamplePlayer};
 pub mod fileplayer;
 pub use fileplayer::FilePlayer;
+pub mod synth;
+pub use synth::Synth;
+pub use synth::LFO;
+pub mod effect;
+pub use effect::Overdrive;
+pub mod channel;
+pub use channel::SoundChannel;
 
 // When the Playdate system struct is created, it passes the given playdate_sound to Sound::new,
 // which then replaces this.
 static mut SOUND: Sound = Sound::null();
+
+// From https://sdk.play.date/3.1.2/Inside%20Playdate%20with%20C.html#f-sound.getCurrentTime
+static SAMPLES_PER_SECOND: u32 = 44100;
 
 /// `Sound` is the main interface to the Playdate audio subsystems.
 #[derive(Clone, Debug)]
@@ -44,6 +57,13 @@ pub struct Sound {
     raw_file_player: *const crankstart_sys::playdate_sound_fileplayer,
     raw_sample: *const crankstart_sys::playdate_sound_sample,
     raw_sample_player: *const crankstart_sys::playdate_sound_sampleplayer,
+    raw_synth: *const crankstart_sys::playdate_sound_synth,
+    raw_lfo: *const crankstart_sys::playdate_sound_lfo,
+    raw_sound_effect: *const crankstart_sys::playdate_sound_effect,
+    raw_overdrive: *const crankstart_sys::playdate_sound_effect_overdrive,
+    raw_one_pole_filter: *const crankstart_sys::playdate_sound_effect_onepolefilter,
+    raw_delay_line: *const crankstart_sys::playdate_sound_effect_delayline,
+    raw_channel: *const crankstart_sys::playdate_sound_channel,
 }
 
 // Not implemented: addSource, removeSource, setMicCallback, and getHeadphoneState (waiting on
@@ -55,6 +75,13 @@ impl Sound {
             raw_file_player: ptr::null(),
             raw_sample: ptr::null(),
             raw_sample_player: ptr::null(),
+            raw_synth: ptr::null(),
+            raw_lfo: ptr::null(),
+            raw_sound_effect: ptr::null(),
+            raw_overdrive: ptr::null(),
+            raw_one_pole_filter: ptr::null(),
+            raw_delay_line: ptr::null(),
+            raw_channel: ptr::null(),
         }
     }
 
@@ -70,12 +97,36 @@ impl Sound {
         ensure!(!raw_sample.is_null(), "Null sound.sample");
         let raw_sample_player = unsafe { (*raw_sound).sampleplayer };
         ensure!(!raw_sample_player.is_null(), "Null sound.sampleplayer");
+        let raw_synth = unsafe { (*raw_sound).synth };
+        ensure!(!raw_synth.is_null(), "Null sound.synth");
+        let raw_lfo = unsafe { (*raw_sound).lfo };
+        ensure!(!raw_lfo.is_null(), "Null sound.lfo");
+        let raw_sound_effect = unsafe { (*raw_sound).effect };
+        ensure!(!raw_sound_effect.is_null(), "Null sound.effect");
+        let raw_overdrive = unsafe { (*(*raw_sound).effect).overdrive };
+        ensure!(!raw_overdrive.is_null(), "Null sound.effect_overdrive");
+        let raw_one_pole_filter = unsafe { (*(*raw_sound).effect).onepolefilter };
+        ensure!(
+            !raw_one_pole_filter.is_null(),
+            "Null sound.effect_onepolefilter"
+        );
+        let raw_delay_line = unsafe { (*(*raw_sound).effect).delayline };
+        ensure!(!raw_delay_line.is_null(), "Null sound.effect_delayline");
+        let raw_channel = unsafe { (*raw_sound).channel };
+        ensure!(!raw_channel.is_null(), "Null sound.channel");
 
         let sound = Self {
             raw_sound,
             raw_file_player,
             raw_sample,
             raw_sample_player,
+            raw_synth,
+            raw_lfo,
+            raw_sound_effect,
+            raw_overdrive,
+            raw_one_pole_filter,
+            raw_delay_line,
+            raw_channel,
         };
         unsafe { SOUND = sound };
         Ok(())
@@ -83,7 +134,7 @@ impl Sound {
 
     /// Gets a handle to the Sound system.  This is the primary entry point for users.
     pub fn get() -> Self {
-        unsafe { SOUND.clone() }
+        unsafe { (&raw const SOUND).read().clone() }
     }
 
     /// Get a `FilePlayer` that can be used to stream audio from disk, e.g. for music.
@@ -133,4 +184,53 @@ impl Sound {
             speaker as ctypes::c_int
         )
     }
+
+    /// Returns the sound library's most recent error string, if one is available.
+    pub fn get_error(&self) -> Result<Option<String>> {
+        let raw_error = pd_func_caller!((*self.raw_sound).getError)?;
+        if raw_error.is_null() {
+            return Ok(None);
+        }
+
+        Ok(Some(
+            unsafe { CStr::from_ptr(raw_error) }
+                .to_string_lossy()
+                .into_owned(),
+        ))
+    }
+
+    pub fn new_synth(&self) -> Result<Synth> {
+        crate::sound::Synth::new(self.raw_synth)
+    }
+
+    pub fn new_lfo(&self, lfo_type: LFOType) -> Result<LFO> {
+        crate::sound::LFO::new(self.raw_lfo, lfo_type)
+    }
+
+    pub fn new_overdrive(&self) -> Result<Overdrive> {
+        crate::sound::Overdrive::new(self.raw_sound_effect, self.raw_overdrive)
+    }
+
+    pub fn new_one_pole_filter(&self) -> Result<effect::OnePoleFilter> {
+        crate::sound::effect::OnePoleFilter::new(self.raw_sound_effect, self.raw_one_pole_filter)
+    }
+
+    pub fn new_delay_line(&self, length_seconds: f32, stereo: bool) -> Result<effect::DelayLine> {
+        crate::sound::effect::DelayLine::new(
+            self.raw_sound_effect,
+            self.raw_delay_line,
+            length_seconds,
+            stereo,
+        )
+    }
+
+    pub fn new_channel(&self) -> Result<SoundChannel> {
+        crate::sound::SoundChannel::new(self.raw_channel)
+    }
+}
+
+/// # Safety
+/// This trait must guarantee that the returned pointer is valid for the `self` lifetime.
+pub unsafe trait SoundSource: 'static {
+    fn get_sound_source(&self) -> *mut crankstart_sys::SoundSource;
 }

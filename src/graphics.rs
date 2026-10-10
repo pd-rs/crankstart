@@ -1,3 +1,5 @@
+use core::ptr::null_mut;
+
 use {
     crate::{
         geometry::{ScreenPoint, ScreenRect, ScreenSize, ScreenVector},
@@ -17,6 +19,7 @@ pub use crankstart_sys::{
     LCDBitmapDrawMode, LCDBitmapFlip, LCDLineCapStyle, LCDPolygonFillRule, LCDRect, LCDSolidColor,
     PDRect, PDStringEncoding, LCD_COLUMNS, LCD_ROWS, LCD_ROWSIZE,
 };
+use crankstart_sys::{PDTextAlignment, PDTextWrappingMode};
 
 pub fn rect_make(x: f32, y: f32, width: f32, height: f32) -> PDRect {
     PDRect {
@@ -51,6 +54,9 @@ pub struct BitmapData {
     pub height: c_int,
     pub rowbytes: c_int,
     pub hasmask: bool,
+
+    pub pixel_data: *mut u8,
+    pub mask_data: *mut u8,
 }
 
 #[derive(Debug)]
@@ -64,6 +70,7 @@ impl BitmapInner {
         let mut width = 0;
         let mut height = 0;
         let mut rowbytes = 0;
+        let mut pixel_ptr = ptr::null_mut();
         let mut mask_ptr = ptr::null_mut();
         pd_func_caller!(
             (*Graphics::get_ptr()).getBitmapData,
@@ -72,13 +79,15 @@ impl BitmapInner {
             &mut height,
             &mut rowbytes,
             &mut mask_ptr,
-            ptr::null_mut(),
+            &mut pixel_ptr,
         )?;
         Ok(BitmapData {
             width,
             height,
             rowbytes,
             hasmask: !mask_ptr.is_null(),
+            pixel_data: pixel_ptr,
+            mask_data: mask_ptr,
         })
     }
 
@@ -352,6 +361,32 @@ impl Bitmap {
             rect,
         )
     }
+
+    pub fn set_mask(&self, mask: Option<Bitmap>) -> Result<(), Error> {
+        pd_func_caller!(
+            (*Graphics::get_ptr()).setBitmapMask,
+            self.inner.borrow().raw_bitmap,
+            mask.map(|mask| mask.inner.borrow().raw_bitmap)
+                .unwrap_or(ptr::null_mut()),
+        )?;
+        Ok(())
+    }
+
+    pub fn get_mask(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).getBitmapMask,
+            self.inner.borrow().raw_bitmap,
+        )?;
+        Ok(Bitmap::new(raw_bitmap, true))
+    }
+
+    pub fn copy(&self) -> Result<Bitmap, Error> {
+        let raw_bitmap = pd_func_caller!(
+            (*Graphics::get_ptr()).copyBitmap,
+            self.inner.borrow().raw_bitmap
+        )?;
+        Ok(Bitmap::new(raw_bitmap, true))
+    }
 }
 
 type OptionalBitmap<'a> = Option<&'a mut Bitmap>;
@@ -386,6 +421,10 @@ struct BitmapTableInner {
 }
 
 impl BitmapTableInner {
+    /// Get a bitmap from this table.
+    /// Note: there is currently UB if you keep these bitmaps around
+    /// for longer than the table itself.
+    /// TODO: these bitmaps should keep the table alive.
     fn get_bitmap(&mut self, index: usize) -> Result<Bitmap, Error> {
         if let Some(bitmap) = self.bitmaps.get(&index) {
             Ok(bitmap.clone())
@@ -428,6 +467,8 @@ impl BitmapTableInner {
 
 impl Drop for BitmapTableInner {
     fn drop(&mut self) {
+        // Calling freeBitmapTable frees all the bitmaps in self.bitmaps, so we get rid of them first.
+        self.bitmaps.clear();
         pd_func_caller_log!(
             (*Graphics::get_ptr()).freeBitmapTable,
             self.raw_bitmap_table
@@ -474,7 +515,7 @@ impl Graphics {
     }
 
     pub fn get() -> Self {
-        unsafe { GRAPHICS.clone() }
+        unsafe { (&raw const GRAPHICS).read().clone() }
     }
 
     pub fn get_ptr() -> *const crankstart_sys::playdate_graphics {
@@ -483,13 +524,18 @@ impl Graphics {
 
     /// Allows drawing directly into an image rather than the framebuffer, for example for
     /// drawing text into a sprite's image.
-    pub fn with_context<F, T>(&self, bitmap: &Bitmap, f: F) -> Result<T, Error>
+    /// With no bitmap, just pushes a context so you can modify Graphics and pop it later.
+    pub fn with_context<F, T>(&self, bitmap: Option<&Bitmap>, f: F) -> Result<T, Error>
     where
         F: FnOnce() -> Result<T, Error>,
     {
         // Any calls in this context are directly modifying the bitmap, so borrow mutably
         // for safety.
-        self.push_context(bitmap.inner.borrow_mut().raw_bitmap)?;
+        self.push_context(
+            bitmap
+                .map(|b| b.inner.borrow_mut().raw_bitmap)
+                .unwrap_or(null_mut()),
+        )?;
         let res = f();
         self.pop_context()?;
         res
@@ -548,6 +594,14 @@ impl Graphics {
 
     pub fn set_draw_mode(&self, mode: LCDBitmapDrawMode) -> Result<LCDBitmapDrawMode, Error> {
         pd_func_caller!((*self.0).setDrawMode, mode)
+    }
+
+    pub fn set_stencil_image(&self, image: &Bitmap, tile: bool) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).setStencilImage,
+            image.inner.borrow().raw_bitmap,
+            tile as i32
+        )
     }
 
     pub fn mark_updated_rows(&self, range: RangeInclusive<i32>) -> Result<(), Error> {
@@ -789,6 +843,28 @@ impl Graphics {
             PDStringEncoding::kUTF8Encoding,
             position.x,
             position.y,
+        )
+    }
+
+    pub fn draw_text_in_rect(
+        &self,
+        text: &str,
+        rect: ScreenRect,
+        wrapping_mode: PDTextWrappingMode,
+        alignment: PDTextAlignment,
+    ) -> Result<(), Error> {
+        let c_text = CString::new(text).map_err(Error::msg)?;
+        pd_func_caller!(
+            (*self.0).drawTextInRect,
+            c_text.as_ptr() as *const core::ffi::c_void,
+            text.len(),
+            PDStringEncoding::kUTF8Encoding,
+            rect.origin.x,
+            rect.origin.y,
+            rect.size.width,
+            rect.size.height,
+            wrapping_mode,
+            alignment
         )
     }
 

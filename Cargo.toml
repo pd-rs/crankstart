@@ -27,6 +27,9 @@ members = [
     "crankstart-sys",
 ]
 
+[features]
+host-test = []
+
 [[example]]
 name = "hello_world"
 path = "examples/hello_world.rs"
@@ -64,4 +67,3 @@ rand_pcg = "0.3.1"
 version = "=0.1.2"
 default-features = false
 features = [ "alloc" ]
-

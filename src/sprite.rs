@@ -656,7 +656,7 @@ impl TextSprite {
 
         let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), background.clone())?;
-        graphics.with_context(&text_bitmap, || {
+        graphics.with_context(Some(&text_bitmap), || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;
@@ -692,7 +692,7 @@ impl TextSprite {
 
         let text_bitmap =
             graphics.new_bitmap(size2(width, SYSTEM_FONT_HEIGHT), self.background.clone())?;
-        graphics.with_context(&text_bitmap, || {
+        graphics.with_context(Some(&text_bitmap), || {
             graphics.draw_text(text, point2(0, 0))?;
             Ok(())
         })?;

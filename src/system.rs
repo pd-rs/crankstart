@@ -6,9 +6,11 @@ use core::cell::RefCell;
 
 use anyhow::anyhow;
 
+use crate::graphics::Bitmap;
 use crankstart_sys::ctypes::{c_char, c_int};
 pub use crankstart_sys::PDButtons;
 use crankstart_sys::{PDDateTime, PDLanguage, PDMenuItem, PDPeripherals};
+
 use {
     crate::pd_func_caller, anyhow::Error, core::ptr, crankstart_sys::ctypes::c_void,
     cstr_core::CString,
@@ -27,7 +29,7 @@ impl System {
     }
 
     pub fn get() -> Self {
-        unsafe { SYSTEM.clone() }
+        unsafe { (&raw const SYSTEM).read().clone() }
     }
 
     pub(crate) fn realloc(&self, ptr: *mut c_void, size: usize) -> *mut c_void {
@@ -39,6 +41,16 @@ impl System {
 
     pub fn set_update_callback(&self, f: crankstart_sys::PDCallbackFunction) -> Result<(), Error> {
         pd_func_caller!((*self.0).setUpdateCallback, f, ptr::null_mut())
+    }
+
+    // use Game::serial_message_callback to get these
+    // Public for crankstart_game! expansions in downstream crates.
+    #[doc(hidden)]
+    pub fn set_serial_message_callback(
+        &self,
+        f: Option<unsafe extern "C" fn(data: *const crankstart_sys::ctypes::c_char)>,
+    ) -> Result<(), Error> {
+        pd_func_caller!((*self.0).setSerialMessageCallback, f)
     }
 
     pub fn get_button_state(&self) -> Result<(PDButtons, PDButtons, PDButtons), Error> {
@@ -339,6 +351,14 @@ impl System {
 
     pub fn get_language(&self) -> Result<PDLanguage, Error> {
         pd_func_caller!((*self.0).getLanguage)
+    }
+
+    pub fn set_menu_image(&self, bitmap: Bitmap, x_offset: i32) -> Result<(), Error> {
+        pd_func_caller!(
+            (*self.0).setMenuImage,
+            bitmap.inner.borrow().raw_bitmap,
+            x_offset
+        )
     }
 }
 

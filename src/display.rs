@@ -17,7 +17,7 @@ impl Display {
     }
 
     pub fn get() -> Self {
-        unsafe { DISPLAY.clone() }
+        unsafe { (&raw const DISPLAY).read().clone() }
     }
 
     pub fn get_size(&self) -> Result<ScreenSize, Error> {
@@ -45,6 +45,14 @@ impl Display {
 
     pub fn set_refresh_rate(&self, rate: f32) -> Result<(), Error> {
         pd_func_caller!((*self.0).setRefreshRate, rate)
+    }
+
+    pub fn get_refresh_rate(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getRefreshRate)
+    }
+
+    pub fn get_fps(&self) -> Result<f32, Error> {
+        pd_func_caller!((*self.0).getFPS)
     }
 
     pub fn set_flipped(&self, flipped: Vector2D<bool>) -> Result<(), Error> {
